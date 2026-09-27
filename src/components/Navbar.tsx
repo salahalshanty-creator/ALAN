@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShoppingBag, Globe, Menu, X } from 'lucide-react';
+import navbarLogo from '../assets/images/alan-logo-new.png';
 
 interface NavbarProps {
   cartCount: number;
@@ -30,8 +31,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-20 flex items-center justify-between gap-4">
-        <button type="button" onClick={() => navigate('/')} className="shrink-0" aria-label="ALAN ADVERTISMENT AND PRINTING home">
-          <img src="/images/alan-logo.png" alt="ALAN Advertisement and Printing" className="h-12 sm:h-14 w-auto max-w-[210px] object-contain" />
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="group shrink-0 transition-[opacity,transform] duration-[600ms] [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] starting:-translate-y-1 starting:scale-[0.97] starting:opacity-0 motion-reduce:transition-none motion-reduce:starting:translate-y-0 motion-reduce:starting:scale-100"
+          aria-label="Go to homepage"
+        >
+          <img
+            src={navbarLogo}
+            alt="Alan Advertisement and Printing"
+            className="h-12 w-auto max-w-[120px] object-contain transition-transform duration-[250ms] ease-out group-hover:-translate-y-px group-hover:scale-[1.025] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0 motion-reduce:group-hover:scale-100 sm:h-14 sm:max-w-[150px] lg:h-16 lg:max-w-[180px]"
+          />
         </button>
 
         <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-neutral-700">

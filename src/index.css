@@ -61,3 +61,38 @@
 }
 
 .product-photo { display:block; width:100%; height:100%; object-fit:cover; }
+
+.hero-background-motion {
+  --hero-motion-scale: 1.02;
+  --hero-motion-x: 0.2%;
+  --hero-motion-y: -0.1%;
+  animation: hero-background-drift 20s ease-in-out infinite alternate;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@media (min-width: 768px) {
+  .hero-background-motion {
+    --hero-motion-scale: 1.04;
+    --hero-motion-x: 0.35%;
+    --hero-motion-y: -0.2%;
+  }
+}
+
+@keyframes hero-background-drift {
+  from {
+    transform: translate3d(-0.1%, 0.05%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(var(--hero-motion-x), var(--hero-motion-y), 0) scale(var(--hero-motion-scale));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-background-motion {
+    animation: none;
+    inset: 0;
+    transform: none;
+    will-change: auto;
+  }
+}
