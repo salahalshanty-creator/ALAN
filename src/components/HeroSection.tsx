@@ -1,5 +1,6 @@
 import React from 'react';
-import { ArrowRight, Sparkles, ShieldCheck, Clock, MapPin } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import heroPrintingPress from '../assets/images/hero-modern-printing-press.png';
 
 interface HeroSectionProps {
   onExploreCatalog: () => void;
@@ -13,95 +14,72 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   isArabic = false,
 }) => {
   return (
-    <section className="relative overflow-hidden bg-[#FAF9F5] border-b border-neutral-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          {/* Left Text Column */}
-          <div className="lg:col-span-7 space-y-6" dir={isArabic ? 'rtl' : 'ltr'}>
-            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-amber-800">
-              <span className="w-2 h-2 rounded-full bg-amber-600 animate-ping" />
-              <span>{isArabic ? 'مطبعة رائدة في دولة الإمارات العربية المتحدة' : 'Commercial & Luxury Printing Atelier · Dubai'}</span>
-            </div>
+    <section
+      className="relative overflow-hidden border-b border-neutral-800 bg-cover bg-[position:62%_center] sm:bg-[position:58%_center] lg:bg-center"
+      style={{ backgroundImage: `url(${heroPrintingPress})` }}
+    >
+      <div className="absolute inset-0 bg-gradient-to-b from-[#050a0f]/90 via-[#050a0f]/65 to-[#050a0f]/90 sm:hidden" aria-hidden="true" />
+      <div className="absolute inset-0 hidden bg-gradient-to-r from-[#050a0f]/95 via-[#050a0f]/70 to-[#050a0f]/10 sm:block" aria-hidden="true" />
+      <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-black/70 to-transparent" aria-hidden="true" />
 
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-bold text-neutral-900 tracking-tight leading-[1.1] [text-wrap:balance]">
-              {isArabic 
-                ? 'أرقى مطبوعات الشركات، البصمة الحرارية الذهبية والتغليف الفاخر بدبي'
-                : 'The Benchmark of Fine Corporate Printing & Bespoke Packaging in the UAE.'}
-            </h1>
-
-            <p className="text-base sm:text-lg text-neutral-600 font-sans max-w-2xl leading-relaxed">
-              {isArabic
-                ? 'من بطاقات الأعمال المخملية الفاخرة بتقنية البصمة الحرارية الذهبية، إلى العلب المقواة المخصصة للعطور والهدايا وكتالوجات المعارض. إنتاج ألماني متطور في القوز 2 مع توصيل فوري لكافة إمارات الدولة.'
-                : 'Engineered for executive leadership, DIFC boardrooms, and luxury brands across the 7 Emirates. Precision Heidelberg offset, Scodix 3D tactile foil, and hand-wrapped rigid boxes produced in Dubai with same-day dispatch.'}
-            </p>
-
-            {/* CTAs */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={onExploreCatalog}
-                className="px-6 py-3.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-sm font-semibold flex items-center gap-2.5 transition-all shadow-sm active:scale-98"
-              >
-                <span>{isArabic ? 'تصفح الكتالوج واحسب سعرك فوراً' : 'Configure Products & Live Prices'}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={onRequestSwatches}
-                className="px-5 py-3.5 bg-white hover:bg-neutral-100 text-neutral-800 border border-neutral-300 rounded-xl text-sm font-medium transition-all"
-              >
-                <span>{isArabic ? 'طلب دفتر العينات مجاناً' : 'Request Free Paper Swatch Kit'}</span>
-              </button>
-            </div>
-
-            {/* Quantitative Trust Markers (Claim to proof adjacency) */}
-            <div className="pt-6 border-t border-neutral-200/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-neutral-700">
-              <div>
-                <div className="text-xl font-serif font-bold text-neutral-900 tabular-nums">24h / Same-Day</div>
-                <div className="text-[11px] text-neutral-500 mt-0.5">Dubai Al Quoz Rush Print</div>
-              </div>
-
-              <div>
-                <div className="text-xl font-serif font-bold text-neutral-900 tabular-nums">1,200 GSM</div>
-                <div className="text-[11px] text-neutral-500 mt-0.5">Rigid Kappa Box Craft</div>
-              </div>
-
-              <div>
-                <div className="text-xl font-serif font-bold text-neutral-900 tabular-nums">5% UAE VAT</div>
-                <div className="text-[11px] text-neutral-500 mt-0.5">Quality Checked & Professionally Finished</div>
-              </div>
-
-              <div>
-                <div className="text-xl font-serif font-bold text-neutral-900 tabular-nums">7 Emirates</div>
-                <div className="text-[11px] text-neutral-500 mt-0.5">Direct Fleet Courier Delivery</div>
-              </div>
-            </div>
+      <div className="relative z-10 mx-auto flex min-h-[620px] max-w-7xl flex-col justify-center px-4 py-10 sm:min-h-[650px] sm:px-6 sm:py-14 lg:min-h-[700px] lg:px-8 lg:py-16">
+        <div className="max-w-4xl" dir={isArabic ? 'rtl' : 'ltr'}>
+          <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-amber-300 sm:text-xs">
+            <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_14px_rgba(251,191,36,0.8)]" />
+            <span>{isArabic ? 'مطبعة رائدة في دولة الإمارات العربية المتحدة' : 'Commercial & Luxury Printing Atelier · Dubai'}</span>
           </div>
 
-          {/* Right Image Showcase Column (16:9 Aspect Ratio) */}
-          <div className="lg:col-span-5 relative">
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-neutral-200 bg-neutral-100 aspect-[4/3] lg:aspect-[1/1] xl:aspect-[4/3]">
-              <img
-                src="/src/assets/images/hero_printing_press_luxury_1790497071834.jpg"
-                alt="Luxury Dubai corporate stationery with gold foil stamping and bespoke rigid boxes"
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex flex-col justify-end p-6 text-white">
-                <span className="text-xs uppercase tracking-widest text-amber-300 font-semibold">
-                  ALAN Production Atelier
-                </span>
-                <h2 className="text-lg font-serif font-bold mt-0.5">
-                  Ultra-thick Cotton, Mirrored Foils & Hand-Assembled Boxes
-                </h2>
-                <div className="flex items-center gap-3 text-xs text-neutral-300 mt-1">
-                  <span>Dubai Al Quoz 2 Facility</span>
-                  <span aria-hidden="true">·</span>
-                  <span>German Heidelberg Press</span>
-                </div>
-              </div>
-            </div>
+          <h1 className="mt-4 max-w-4xl font-serif text-4xl font-bold leading-[1.02] tracking-tight text-white [text-wrap:balance] sm:mt-5 sm:text-5xl lg:text-6xl xl:text-[4.25rem]">
+            {isArabic
+              ? 'أرقى مطبوعات الشركات، البصمة الحرارية الذهبية والتغليف الفاخر بدبي'
+              : 'The Benchmark of Fine Corporate Printing & Bespoke Packaging in the UAE.'}
+          </h1>
+
+          <p className="mt-5 max-w-2xl font-sans text-sm leading-relaxed text-neutral-200 sm:text-base lg:text-lg">
+            {isArabic
+              ? 'من بطاقات الأعمال الفاخرة إلى التغليف المخصص ومطبوعات الشركات. إنتاج احترافي في دبي مع خيارات تشطيب متميزة وتوصيل إلى كافة إمارات الدولة.'
+              : 'Commercial, corporate, and bespoke printing produced in Dubai—from premium stationery and packaging to precision finishing, with delivery across all seven Emirates.'}
+          </p>
+
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <button
+              type="button"
+              onClick={onExploreCatalog}
+              className="flex min-h-12 items-center justify-center gap-2.5 rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-bold text-neutral-950 shadow-lg shadow-black/20 transition-all hover:bg-amber-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300 active:scale-[0.98]"
+            >
+              <span>{isArabic ? 'تصفح الكتالوج واحسب سعرك فوراً' : 'Configure Products & Live Prices'}</span>
+              <ArrowRight className={`h-4 w-4 ${isArabic ? 'rotate-180' : ''}`} />
+            </button>
+
+            <button
+              type="button"
+              onClick={onRequestSwatches}
+              className="min-h-12 rounded-xl border border-white/45 bg-white/10 px-5 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:border-white/70 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            >
+              <span>{isArabic ? 'طلب دفتر العينات مجاناً' : 'Request Free Paper Swatch Kit'}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-10 grid max-w-4xl grid-cols-2 gap-x-5 gap-y-5 border-t border-white/20 pt-6 text-white sm:mt-12 sm:grid-cols-4 sm:gap-6">
+          <div>
+            <div className="font-serif text-lg font-bold tabular-nums sm:text-xl">24h / Same-Day</div>
+            <div className="mt-0.5 text-[10px] leading-4 text-neutral-300 sm:text-[11px]">Dubai Al Quoz Rush Print</div>
+          </div>
+
+          <div>
+            <div className="font-serif text-lg font-bold tabular-nums sm:text-xl">1,200 GSM</div>
+            <div className="mt-0.5 text-[10px] leading-4 text-neutral-300 sm:text-[11px]">Rigid Kappa Box Craft</div>
+          </div>
+
+          <div>
+            <div className="font-serif text-lg font-bold tabular-nums sm:text-xl">5% UAE VAT</div>
+            <div className="mt-0.5 text-[10px] leading-4 text-neutral-300 sm:text-[11px]">Quality Checked & Professionally Finished</div>
+          </div>
+
+          <div>
+            <div className="font-serif text-lg font-bold tabular-nums sm:text-xl">7 Emirates</div>
+            <div className="mt-0.5 text-[10px] leading-4 text-neutral-300 sm:text-[11px]">Direct Fleet Courier Delivery</div>
           </div>
         </div>
       </div>
