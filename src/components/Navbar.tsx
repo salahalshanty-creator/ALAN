@@ -47,7 +47,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button type="button" onClick={onToggleLanguage} className="hidden sm:flex px-2.5 py-1.5 text-xs font-medium text-neutral-600 border border-neutral-200 rounded-lg items-center gap-1.5">
             <Globe className="w-3.5 h-3.5" /><span>{isArabic ? 'English' : 'العربية'}</span>
           </button>
-          <a href="https://wa.me/971523640939" target="_blank" rel="noreferrer" className="hidden sm:flex px-3 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-lg text-xs font-semibold transition-colors">WhatsApp</a>
           <button type="button" onClick={onOpenCart} className="relative p-2.5 bg-neutral-900 text-white rounded-lg flex items-center gap-2 text-xs font-semibold" aria-label="View Cart">
             <ShoppingBag className="w-4 h-4" /><span className="hidden sm:inline">{isArabic ? 'السلة' : 'Cart'}</span>
             {cartCount > 0 && <span className="w-5 h-5 bg-amber-500 text-neutral-950 rounded-full text-[11px] font-bold flex items-center justify-center">{cartCount}</span>}
@@ -68,7 +67,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             ['/about', isArabic ? 'من نحن' : 'About Us'],
           ].map(([path, label]) => <button key={path} onClick={() => navigate(path)} className="block w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-100 text-sm">{label}</button>)}
           <button onClick={onOpenQuoteModal} className="block w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-100 text-sm">{isArabic ? 'اطلب عرض سعر' : 'Get a Quote'}</button>
-          <a href="https://wa.me/971523640939" target="_blank" rel="noreferrer" className="block px-3 py-2 bg-[#25D366] text-white rounded-lg text-sm font-semibold text-center">WhatsApp: 052 364 0939</a>
         </div>
       )}
     </header>

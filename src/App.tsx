@@ -14,6 +14,7 @@ import { SwatchKitModal } from './components/SwatchKitModal';
 import { CustomQuoteModal } from './components/CustomQuoteModal';
 import { Sparkles, Truck, ShieldCheck, Zap } from 'lucide-react';
 import { OffersPage, WorkPage, AboutPage } from './components/MarketingPages';
+import { WhatsAppWidget } from './components/WhatsAppWidget';
 
 export default function App() {
   const [isArabic, setIsArabic] = useState(false);
@@ -94,6 +95,7 @@ export default function App() {
       <OrderTrackerModal isOpen={isTrackerOpen} onClose={() => setIsTrackerOpen(false)} initialOrderNumber={trackingOrderNumber} userOrders={userOrders} isArabic={isArabic} />
       <SwatchKitModal isOpen={isSwatchModalOpen} onClose={() => setIsSwatchModalOpen(false)} isArabic={isArabic} />
       <CustomQuoteModal isOpen={isQuoteModalOpen} onClose={() => setIsQuoteModalOpen(false)} isArabic={isArabic} />
+      <WhatsAppWidget />
     </div>
   );
 }
