@@ -30,6 +30,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
     { id: 'custom-print', label: 'Custom Print Jobs', labelAr: 'المشاريع والطباعة المخصصة' },
   ];
 
+  const handleCategoryChange = (category: ProductCategory) => {
+    setSelectedCategory(category);
+    if (category === 'business-cards') setPaperFilter('all');
+  };
+
   const filteredProducts = PRODUCTS.filter((product) => {
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     const matchesSearch = 
@@ -91,7 +96,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             <button
               key={cat.id}
               type="button"
-              onClick={() => setSelectedCategory(cat.id)}
+              onClick={() => handleCategoryChange(cat.id)}
               className={`px-4 py-2.5 text-xs rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 selectedCategory === cat.id
                   ? 'bg-white text-neutral-950 shadow-xs font-semibold'
@@ -107,33 +112,42 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
         </div>
 
         {/* Sub-filter bar: Quick Paper Stock Substrate Selector */}
-        <div className="flex flex-wrap items-center gap-2 mb-8 text-xs text-neutral-500">
-          <span className="font-semibold text-neutral-700 flex items-center gap-1">
-            <Sliders className="w-3 h-3 text-neutral-500" />
-            {isArabic ? 'تصفية حسب نوع الورق:' : 'Paper Substrate Filter:'}
-          </span>
-          {[
-            { id: 'all', label: 'All Paper Qualities' },
-            { id: 'matte', label: 'Matte Coated' },
-            { id: 'gloss', label: 'Glossy Art' },
-            { id: 'recycled', label: 'Recycled Eco / Kraft' },
-            { id: 'synthetic', label: 'Waterproof Synthetic' },
-            { id: 'rigid', label: 'Rigid Kappa Board' },
-          ].map((pf) => (
-            <button
-              key={pf.id}
-              type="button"
-              onClick={() => setPaperFilter(pf.id)}
-              className={`px-2.5 py-1 rounded-md text-[11px] transition-colors ${
-                paperFilter === pf.id
-                  ? 'bg-neutral-900 text-white font-medium'
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-              }`}
-            >
-              {pf.label}
-            </button>
-          ))}
-        </div>
+        {selectedCategory === 'business-cards' ? (
+          <div className="flex items-center mb-8 text-xs text-neutral-700">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-neutral-100 font-semibold">
+              <Sliders className="w-3 h-3 text-neutral-500" />
+              {isArabic ? 'جودة الورق' : 'Paper Qualities'}
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2 mb-8 text-xs text-neutral-500">
+            <span className="font-semibold text-neutral-700 flex items-center gap-1">
+              <Sliders className="w-3 h-3 text-neutral-500" />
+              {isArabic ? 'تصفية حسب نوع الورق:' : 'Paper Substrate Filter:'}
+            </span>
+            {[
+              { id: 'all', label: 'All Paper Qualities' },
+              { id: 'matte', label: 'Matte Coated' },
+              { id: 'gloss', label: 'Glossy Art' },
+              { id: 'recycled', label: 'Recycled Eco / Kraft' },
+              { id: 'synthetic', label: 'Waterproof Synthetic' },
+              { id: 'rigid', label: 'Rigid Kappa Board' },
+            ].map((pf) => (
+              <button
+                key={pf.id}
+                type="button"
+                onClick={() => setPaperFilter(pf.id)}
+                className={`px-2.5 py-1 rounded-md text-[11px] transition-colors ${
+                  paperFilter === pf.id
+                    ? 'bg-neutral-900 text-white font-medium'
+                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                }`}
+              >
+                {pf.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Product Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">

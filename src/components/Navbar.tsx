@@ -9,6 +9,7 @@ interface NavbarProps {
   onOpenSwatchModal: () => void;
   onOpenQuoteModal: () => void;
   onScrollToCatalog: () => void;
+  onNavigateToAIDesign: () => void;
   onNavigate: (path: string) => void;
   isArabic: boolean;
   onToggleLanguage: () => void;
@@ -21,6 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSwatchModal,
   onOpenQuoteModal,
   onScrollToCatalog,
+  onNavigateToAIDesign,
   onNavigate,
   isArabic,
   onToggleLanguage,
@@ -30,7 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-20 flex items-center justify-between gap-4">
+      <div className="site-shell min-h-20 flex items-center justify-between gap-4">
         <button
           type="button"
           onClick={() => navigate('/')}
@@ -44,13 +46,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           />
         </button>
 
-        <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-neutral-700">
+        <nav className="hidden lg:flex items-center gap-4 xl:gap-6 text-[13px] xl:text-sm font-medium text-neutral-700 whitespace-nowrap">
           <button onClick={() => navigate('/')} className="hover:text-neutral-950 transition-colors">{isArabic ? 'الرئيسية' : 'Home'}</button>
-          <button onClick={() => navigate('/offers')} className="hover:text-neutral-950 transition-colors">{isArabic ? 'العروض والإعلانات' : 'Offers & Ads'}</button>
           <button onClick={() => navigate('/products')} className="hover:text-neutral-950 transition-colors">{isArabic ? 'المنتجات' : 'Products'}</button>
+          <button onClick={() => { setMobileOpen(false); onNavigateToAIDesign(); }} className="hover:text-amber-700 transition-colors">AI Design</button>
+          <button onClick={() => navigate('/offers')} className="hover:text-neutral-950 transition-colors">{isArabic ? 'العروض والإعلانات' : 'Offers & Ads'}</button>
           <button onClick={() => navigate('/work')} className="hover:text-neutral-950 transition-colors">{isArabic ? 'أعمالنا' : 'Our Work'}</button>
-          <button onClick={() => navigate('/about')} className="hover:text-neutral-950 transition-colors">{isArabic ? 'من نحن' : 'About Us'}</button>
           <button onClick={onOpenQuoteModal} className="hover:text-neutral-950 transition-colors">{isArabic ? 'اطلب عرض سعر' : 'Get a Quote'}</button>
+          <button onClick={() => navigate('/about')} className="hover:text-neutral-950 transition-colors">{isArabic ? 'من نحن' : 'About Us'}</button>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -71,12 +74,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="lg:hidden border-t border-neutral-200 bg-white px-4 py-4 space-y-2">
           {[
             ['/', isArabic ? 'الرئيسية' : 'Home'],
-            ['/offers', isArabic ? 'العروض والإعلانات' : 'Offers & Ads'],
             ['/products', isArabic ? 'المنتجات' : 'Products'],
+            ['#ai-design', 'AI Design'],
+            ['/offers', isArabic ? 'العروض والإعلانات' : 'Offers & Ads'],
             ['/work', isArabic ? 'أعمالنا' : 'Our Work'],
-            ['/about', isArabic ? 'من نحن' : 'About Us'],
-          ].map(([path, label]) => <button key={path} onClick={() => navigate(path)} className="block w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-100 text-sm">{label}</button>)}
+          ].map(([path, label]) => <button key={path} onClick={() => path === '#ai-design' ? (setMobileOpen(false), onNavigateToAIDesign()) : navigate(path)} className="block w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-100 text-sm">{label}</button>)}
           <button onClick={onOpenQuoteModal} className="block w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-100 text-sm">{isArabic ? 'اطلب عرض سعر' : 'Get a Quote'}</button>
+          <button onClick={() => navigate('/about')} className="block w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-100 text-sm">{isArabic ? 'من نحن' : 'About Us'}</button>
         </div>
       )}
     </header>

@@ -26,7 +26,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       <div className="absolute inset-0 hidden bg-gradient-to-r from-[#050a0f]/95 via-[#050a0f]/70 to-[#050a0f]/10 sm:block" aria-hidden="true" />
       <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-black/70 to-transparent" aria-hidden="true" />
 
-      <div className="relative z-10 mx-auto flex min-h-[620px] max-w-7xl flex-col justify-center px-4 py-10 sm:min-h-[650px] sm:px-6 sm:py-14 lg:min-h-[700px] lg:px-8 lg:py-16">
+      <div className="site-shell relative z-10 flex min-h-[620px] flex-col justify-center py-10 sm:min-h-[650px] sm:py-14 lg:min-h-[700px] lg:py-16">
         <div className="max-w-4xl" dir={isArabic ? 'rtl' : 'ltr'}>
           <div className="inline-flex items-center gap-2 font-sans text-[11px] font-bold uppercase tracking-[0.18em] text-amber-300 sm:text-xs">
             <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_14px_rgba(251,191,36,0.8)]" />

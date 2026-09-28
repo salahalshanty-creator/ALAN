@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Product, CartItem, Order } from './types';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
+import { ProductShowcase } from './components/ProductShowcase';
+import { AIDesignPromotions } from './components/AIDesignPromotions';
+import { HowItWorksSection } from './components/HowItWorksSection';
+import { OrderTrackingSection } from './components/OrderTrackingSection';
 import { ProductCatalog } from './components/ProductCatalog';
-import { FacilitySection } from './components/FacilitySection';
 import { Footer } from './components/Footer';
 import { ProductConfiguratorModal } from './components/ProductConfiguratorModal';
 import { CartDrawer } from './components/CartDrawer';
@@ -42,12 +45,30 @@ export default function App() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
+  useEffect(() => {
+    if (route === '/' && window.location.hash === '#ai-design') {
+      requestAnimationFrame(() => document.getElementById('ai-design')?.scrollIntoView({ behavior: 'smooth' }));
+    }
+  }, [route]);
 
   const navigate = (path: string) => {
-    if (path === route) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (path === route) {
+      if (window.location.hash) window.history.pushState({}, '', path);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     window.history.pushState({}, '', path);
     setRoute(path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const navigateToAIDesign = () => {
+    if (route !== '/') {
+      window.history.pushState({}, '', '/#ai-design');
+      setRoute('/');
+      return;
+    }
+    if (window.location.hash !== '#ai-design') window.history.pushState({}, '', '/#ai-design');
+    document.getElementById('ai-design')?.scrollIntoView({ behavior: 'smooth' });
   };
   const scrollToCatalog = () => {
     if (route !== '/products') { navigate('/products'); return; }
@@ -59,8 +80,12 @@ export default function App() {
   const home = (
     <>
       <HeroSection onExploreCatalog={scrollToCatalog} onRequestSwatches={() => setIsSwatchModalOpen(true)} isArabic={isArabic} />
+      <ProductShowcase onBrowseProducts={() => navigate('/products')} />
+      <AIDesignPromotions onExploreGifts={() => navigate('/products')} />
+      <HowItWorksSection />
+      <OrderTrackingSection />
       <section className="bg-white border-b border-neutral-200 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-neutral-800">
+        <div className="site-shell grid grid-cols-2 md:grid-cols-4 gap-6 text-neutral-800">
           {[
             [ShieldCheck, 'Professional Quality', 'Careful production and finishing for business materials.'],
             [Sparkles, 'Premium Finishes', 'Foil, lamination, spot UV and custom finishing options.'],
@@ -69,9 +94,6 @@ export default function App() {
           ].map(([Icon, title, desc]) => <div key={String(title)} className="flex items-start gap-3"><Icon className="w-5 h-5 text-amber-700 shrink-0"/><div><h4 className="text-xs font-bold text-neutral-900">{title as string}</h4><p className="text-[11px] text-neutral-500 mt-0.5">{desc as string}</p></div></div>)}
         </div>
       </section>
-      <ProductCatalog onSelectProduct={setSelectedProduct} isArabic={isArabic} maxProducts={6} onOpenOnlineQuote={() => setIsQuoteModalOpen(true)} />
-      <section className="py-3 bg-white text-center"><button onClick={() => navigate('/products')} className="px-5 py-3 bg-neutral-900 text-white rounded-xl text-sm font-semibold">View All Products</button></section>
-      <FacilitySection onRequestQuote={() => setIsQuoteModalOpen(true)} onRequestSwatches={() => setIsSwatchModalOpen(true)} isArabic={isArabic} />
     </>
   );
 
@@ -83,8 +105,8 @@ export default function App() {
 
   return (
     <div className={`min-h-screen flex flex-col bg-[#FBFBFA] ${isArabic ? 'font-arabic' : 'font-sans'}`}>
-      <aside aria-label="Announcement" className="bg-[#1C1B1A] text-neutral-300 text-[11px] py-2 px-4 border-b border-neutral-800"><div className="max-w-7xl mx-auto flex items-center justify-center gap-2 text-center"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /><span className="text-white font-medium">ALAN ADVERTISMENT AND PRINTING</span><span>Professional Advertising & Printing Solutions · UAE</span></div></aside>
-      <Navbar cartCount={cartItems.length} onOpenCart={() => setIsCartOpen(true)} onOpenTracker={openTracker} onOpenSwatchModal={() => setIsSwatchModalOpen(true)} onOpenQuoteModal={() => setIsQuoteModalOpen(true)} onScrollToCatalog={scrollToCatalog} onNavigate={navigate} isArabic={isArabic} onToggleLanguage={() => setIsArabic(v => !v)} />
+      <aside aria-label="Announcement" className="bg-[#1C1B1A] text-neutral-300 text-[11px] py-2 border-b border-neutral-800"><div className="site-shell flex items-center justify-center gap-2 text-center"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /><span className="text-white font-medium">ALAN ADVERTISMENT AND PRINTING</span><span>Professional Advertising & Printing Solutions · UAE</span></div></aside>
+      <Navbar cartCount={cartItems.length} onOpenCart={() => setIsCartOpen(true)} onOpenTracker={openTracker} onOpenSwatchModal={() => setIsSwatchModalOpen(true)} onOpenQuoteModal={() => setIsQuoteModalOpen(true)} onScrollToCatalog={scrollToCatalog} onNavigateToAIDesign={navigateToAIDesign} onNavigate={navigate} isArabic={isArabic} onToggleLanguage={() => setIsArabic(v => !v)} />
       <main className="flex-1">{page}</main>
       <Footer onOpenTracker={openTracker} onOpenSwatchModal={() => setIsSwatchModalOpen(true)} onOpenQuoteModal={() => setIsQuoteModalOpen(true)} onScrollToCatalog={scrollToCatalog} isArabic={isArabic} onNavigate={navigate} />
 

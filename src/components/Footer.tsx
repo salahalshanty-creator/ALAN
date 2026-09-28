@@ -20,7 +20,7 @@ export const Footer: React.FC<FooterProps> = ({
 }) => {
   return (
     <footer className="bg-neutral-900 text-neutral-400 text-xs border-t border-neutral-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16" dir={isArabic ? 'rtl' : 'ltr'}>
+      <div className="site-shell py-16" dir={isArabic ? 'rtl' : 'ltr'}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* Col 1: Brand & UAE credentials */}
           <div className="lg:col-span-2 space-y-4">
