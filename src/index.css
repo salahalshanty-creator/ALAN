@@ -322,3 +322,52 @@
   .order-tracking__success { animation:none; }
   .order-tracking__loader,.order-tracking__timeline li.is-current .order-tracking__marker { animation:none; }
 }
+
+/* Business-card lamination surface demonstration */
+.lamination-auto-sweep {
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  pointer-events:none;
+  opacity:1;
+  transition:opacity .7s ease;
+}
+.lamination-auto-sweep::before {
+  content:"";
+  position:absolute;
+  top:-35%;
+  bottom:-35%;
+  left:-65%;
+  transform:translate3d(0,0,0) rotate(7deg);
+  will-change:transform,opacity;
+}
+.lamination-auto-sweep--glossy::before {
+  width:48%;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.025) 18%,rgba(255,255,255,.20) 48%,rgba(255,255,255,.07) 68%,transparent 100%);
+  filter:blur(2px);
+  mix-blend-mode:screen;
+  animation:lamination-glossy-sweep 6s cubic-bezier(.45,.05,.55,.95) infinite;
+}
+.lamination-auto-sweep--matt::before {
+  width:78%;
+  background:radial-gradient(ellipse at center,rgba(255,255,255,.09) 0%,rgba(255,255,255,.035) 48%,transparent 76%);
+  filter:blur(12px);
+  mix-blend-mode:soft-light;
+  animation:lamination-matt-sweep 7s ease-in-out infinite;
+}
+.lamination-auto-sweep.is-manual { opacity:0; }
+@keyframes lamination-glossy-sweep {
+  0% { opacity:0; transform:translate3d(0,0,0) rotate(7deg); }
+  12% { opacity:.72; }
+  82% { opacity:.72; }
+  100% { opacity:0; transform:translate3d(350%,0,0) rotate(7deg); }
+}
+@keyframes lamination-matt-sweep {
+  0% { opacity:0; transform:translate3d(-5%,0,0) rotate(5deg); }
+  18% { opacity:.45; }
+  82% { opacity:.45; }
+  100% { opacity:0; transform:translate3d(225%,0,0) rotate(5deg); }
+}
+@media (prefers-reduced-motion:reduce) {
+  .lamination-auto-sweep::before { animation:none; transform:translate3d(130%,0,0) rotate(7deg); }
+}

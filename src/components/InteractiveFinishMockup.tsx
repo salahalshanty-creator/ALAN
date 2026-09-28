@@ -47,6 +47,7 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
   const dragRef = useRef<{ pointerId: number; x: number; y: number; startX: number; startY: number } | null>(null);
   const [lightPos, setLightPos] = useState({ x: 50, y: 50 });
   const [showBleedGuides, setShowBleedGuides] = useState(false);
+  const [isPointerLighting, setIsPointerLighting] = useState(false);
 
   const artworkPreviewUrl = artwork?.previewUrl;
   const uploadedArtworkName = artwork?.name;
@@ -88,6 +89,7 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
+    if (!isPointerLighting) setIsPointerLighting(true);
     const rect = containerRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
     const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
@@ -96,12 +98,56 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
 
   const handleMouseLeave = () => {
     setLightPos({ x: 50, y: 50 });
+    setIsPointerLighting(false);
   };
 
   const isDarkStock = selectedStock?.id === 'fedrigoni-black';
   const isFoil = selectedFinish?.type === 'foil';
   const isUV = selectedFinish?.type === 'uv';
   const isEmboss = selectedFinish?.type === 'emboss';
+  const isMattLamination = selectedFinish?.id === 'matt-lamination';
+  const isGlossyLamination = selectedFinish?.id === 'glossy-lamination';
+  const isWithoutLamination = selectedFinish?.id === 'without-lamination';
+  const isRoundCorner = selectedFinish?.id === 'round-corner';
+
+  const reflectionCenter = Math.max(8, Math.min(92, lightPos.x));
+  const reflectionStart = Math.max(0, reflectionCenter - 24);
+  const reflectionSoftStart = Math.max(0, reflectionCenter - 10);
+  const reflectionSoftEnd = Math.min(100, reflectionCenter + 10);
+  const reflectionEnd = Math.min(100, reflectionCenter + 26);
+
+  let surfaceBackground = 'none';
+  let surfaceOpacity = 0;
+  let surfaceBlendMode: React.CSSProperties['mixBlendMode'] = 'normal';
+
+  if (isMattLamination) {
+    surfaceBackground = `
+      radial-gradient(circle at ${lightPos.x}% ${lightPos.y}%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.035) 28%, transparent 58%),
+      linear-gradient(135deg, rgba(255,255,255,0.035), rgba(20,20,20,0.018))
+    `;
+    surfaceOpacity = 0.65;
+    surfaceBlendMode = 'soft-light';
+  } else if (isGlossyLamination) {
+    surfaceBackground = `
+      radial-gradient(circle at ${lightPos.x}% ${lightPos.y}%, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.10) 22%, transparent 48%),
+      linear-gradient(108deg,
+        transparent ${reflectionStart}%,
+        rgba(255,255,255,0.04) ${reflectionSoftStart}%,
+        rgba(255,255,255,0.30) ${reflectionCenter}%,
+        rgba(255,255,255,0.07) ${reflectionSoftEnd}%,
+        transparent ${reflectionEnd}%)
+    `;
+    surfaceOpacity = 0.9;
+    surfaceBlendMode = 'screen';
+  } else if (!isWithoutLamination && !isRoundCorner && (isFoil || isUV)) {
+    surfaceBackground = `radial-gradient(circle at ${lightPos.x}% ${lightPos.y}%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.08) 35%, transparent 60%)`;
+    surfaceOpacity = 0.75;
+    surfaceBlendMode = 'overlay';
+  }
+
+  const interactiveSurfaceOpacity = (isMattLamination || isGlossyLamination) && !isPointerLighting
+    ? 0
+    : surfaceOpacity;
 
   // Dynamic metallic gradient angle based on cursor position
   const foilGradient = `linear-gradient(${115 + (lightPos.x - 50) * 0.8}deg, 
@@ -198,6 +244,7 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
       {/* Interactive 3D Card Simulator Canvas */}
       <div
         ref={containerRef}
+        onMouseEnter={() => setIsPointerLighting(true)}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         className="relative w-full aspect-[16/10] sm:aspect-[16/9] rounded-xl overflow-hidden cursor-crosshair border border-neutral-200 shadow-inner flex items-center justify-center p-6"
@@ -222,7 +269,7 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
           onPointerMove={handlePointerMove}
           onPointerUp={stopDragging}
           onPointerCancel={stopDragging}
-          className={`relative rounded-md overflow-hidden transition-all duration-150 ease-out select-none flex flex-col justify-between p-6 sm:p-8 ${artworkPreviewUrl ? 'cursor-grab active:cursor-grabbing' : ''}`}
+          className={`relative overflow-hidden transition-all duration-150 ease-out select-none flex flex-col justify-between p-6 sm:p-8 ${isRoundCorner ? 'rounded-2xl' : 'rounded-md'} ${artworkPreviewUrl ? 'cursor-grab active:cursor-grabbing' : ''}`}
           style={{
             width: landscapeFit ? '82%' : 'auto',
             height: landscapeFit ? 'auto' : '72%',
@@ -255,26 +302,34 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
 
           {/* Paper Texture Overlay */}
           <div 
-            className="absolute inset-0 pointer-events-none opacity-40 mix-blend-multiply rounded-md"
+            className="absolute inset-0 z-[2] pointer-events-none mix-blend-multiply rounded-[inherit]"
             style={{
+              opacity: isGlossyLamination ? 0.08 : isMattLamination ? 0.16 : 0.28,
               backgroundImage: 'radial-gradient(#d0cec7 0.75px, transparent 0.75px)',
               backgroundSize: '8px 8px',
             }}
           />
 
-          {/* Glint & Specular Spot UV / Foil Lighting Pass */}
+          {/* Non-destructive finish surface simulation */}
           <div
-            className="absolute inset-0 pointer-events-none rounded-md transition-opacity duration-200"
+            className="absolute inset-0 z-20 pointer-events-none rounded-[inherit] transition-opacity duration-150"
             style={{
-              opacity: isFoil || isUV ? 0.75 : 0.25,
-              background: `radial-gradient(circle at ${lightPos.x}% ${lightPos.y}%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.08) 35%, transparent 60%)`,
-              mixBlendMode: 'overlay',
+              opacity: interactiveSurfaceOpacity,
+              background: surfaceBackground,
+              mixBlendMode: surfaceBlendMode,
             }}
           />
 
+          {(isGlossyLamination || isMattLamination) && (
+            <div
+              aria-hidden="true"
+              className={`lamination-auto-sweep z-20 rounded-[inherit] ${isGlossyLamination ? 'lamination-auto-sweep--glossy' : 'lamination-auto-sweep--matt'} ${isPointerLighting ? 'is-manual' : ''}`}
+            />
+          )}
+
           {/* Bleed lines overlay if enabled */}
           {showBleedGuides && (
-            <div className="absolute inset-0 z-20 pointer-events-none border-2 border-dashed border-red-500/60 rounded-md">
+            <div className="absolute inset-0 z-30 pointer-events-none border-2 border-dashed border-red-500/60 rounded-[inherit]">
               <span className="absolute top-1 left-2 text-[9px] font-mono text-red-600 bg-white/90 px-1 rounded">
                 Bleed Boundary (+3mm)
               </span>
@@ -287,6 +342,12 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
                 </div>
               </div>
             </div>
+          )}
+
+          {artworkPreviewUrl && (
+            <span className="absolute bottom-2 right-2 z-[25] rounded bg-black/55 px-1.5 py-0.5 font-mono text-[9px] font-medium tracking-wide text-white/90 backdrop-blur-sm pointer-events-none">
+              {selectedFinish?.name.toUpperCase()}
+            </span>
           )}
 
           {/* Top Brand Element on Card */}
@@ -385,7 +446,7 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
 
             <div className="font-mono text-[9px] text-right">
               <span className="inline-block px-1.5 py-0.5 rounded bg-black/5 text-neutral-600">
-                {selectedFinish?.name.split(' ')[0]} {selectedFinish?.type.toUpperCase()}
+                {selectedFinish?.name.toUpperCase()}
               </span>
             </div>
           </div>}

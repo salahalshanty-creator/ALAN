@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Product, PaperStock, PrintFinish, PrintSize, TurnaroundSpeed, CartItem, PrintedSide } from '../types';
 import { calculateCustomPrice, formatAED } from '../utils/pricing';
 import { InteractiveFinishMockup, ArtworkEditorState } from './InteractiveFinishMockup';
+import { BusinessCardArtworkGuide } from './BusinessCardArtworkGuide';
 import { 
   X, 
   Upload, 
@@ -82,6 +83,7 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
   const artworkObjectUrlRefs = useRef<Record<PrintedSide, string | null>>({ front: null, back: null });
   const [customNotes, setCustomNotes] = useState('');
   const [addedSuccess, setAddedSuccess] = useState(false);
+  const [showArtworkGuide, setShowArtworkGuide] = useState(false);
 
   const replaceArtworkObjectUrl = (side: PrintedSide, nextUrl: string | null) => {
     if (artworkObjectUrlRefs.current[side]) {
@@ -195,19 +197,6 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
     }
   };
 
-  const handleUseDemoArtwork = () => {
-    const side = activePreviewSide;
-    replaceArtworkObjectUrl(side, null);
-    const sampleArtwork: ArtworkFile = {
-      name: `Al_Wasl_${product.title.replace(/\s+/g, '_')}_preflight_cmyk.ai`,
-      size: '18.4 MB',
-      status: 'Vector Bleed & 300 DPI Verified',
-      editor: { ...DEFAULT_ARTWORK_EDITOR },
-    };
-    if (side === 'front') setFrontArtwork(sampleArtwork);
-    else setBackArtwork(sampleArtwork);
-  };
-
   const handleRemoveArtwork = (side: PrintedSide) => {
     replaceArtworkObjectUrl(side, null);
     if (side === 'front') setFrontArtwork(null);
@@ -316,10 +305,10 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
                 </span>
                 <button
                   type="button"
-                  onClick={handleUseDemoArtwork}
-                  className="text-xs text-amber-700 hover:text-amber-800 underline font-medium"
+                  onClick={() => setShowArtworkGuide(true)}
+                  className="flex items-center gap-1 text-xs font-medium text-amber-700 underline hover:text-amber-800"
                 >
-                  {isArabic ? 'استخدم عينة فيكتور جاهزة' : 'Use sample UAE corporate design'}
+                  <FileText className="h-3.5 w-3.5" /> Guide
                 </button>
               </div>
 
@@ -373,75 +362,6 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
               </div>
             </div>
 
-            {/* Turnaround speed selection */}
-            <div>
-              <label className="block text-xs font-semibold text-neutral-900 mb-2 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-neutral-600" />
-                {isArabic ? 'سرعة الإنتاج والتسليم في الإمارات' : 'Turnaround Speed (UAE Delivery)'}
-              </label>
-
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setTurnaroundSpeed('standard')}
-                  className={`p-2.5 rounded-lg border text-left transition-all ${
-                    turnaroundSpeed === 'standard'
-                      ? 'border-neutral-900 bg-neutral-900 text-white shadow-sm'
-                      : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
-                  }`}
-                >
-                  <div className="text-xs font-semibold">Standard</div>
-                  <div className={`text-[10px] ${turnaroundSpeed === 'standard' ? 'text-neutral-300' : 'text-neutral-500'}`}>
-                    {product.leadTimeDays} Days Regular
-                  </div>
-                  <div className={`text-[10px] mt-1 font-mono ${turnaroundSpeed === 'standard' ? 'text-amber-300' : 'text-neutral-400'}`}>
-                    Base rate
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setTurnaroundSpeed('express24h')}
-                  className={`p-2.5 rounded-lg border text-left transition-all ${
-                    turnaroundSpeed === 'express24h'
-                      ? 'border-neutral-900 bg-neutral-900 text-white shadow-sm'
-                      : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
-                  }`}
-                >
-                  <div className="text-xs font-semibold flex items-center justify-between">
-                    <span>Express</span>
-                    <Zap className="w-3 h-3 text-amber-400" />
-                  </div>
-                  <div className={`text-[10px] ${turnaroundSpeed === 'express24h' ? 'text-neutral-300' : 'text-neutral-500'}`}>
-                    24h Dispatch
-                  </div>
-                  <div className={`text-[10px] mt-1 font-mono ${turnaroundSpeed === 'express24h' ? 'text-amber-300' : 'text-neutral-600 font-medium'}`}>
-                    +AED 45
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setTurnaroundSpeed('rushSameDay')}
-                  className={`p-2.5 rounded-lg border text-left transition-all ${
-                    turnaroundSpeed === 'rushSameDay'
-                      ? 'border-neutral-900 bg-neutral-900 text-white shadow-sm'
-                      : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
-                  }`}
-                >
-                  <div className="text-xs font-semibold flex items-center justify-between">
-                    <span>Same-Day</span>
-                    <Sparkles className="w-3 h-3 text-amber-400" />
-                  </div>
-                  <div className={`text-[10px] ${turnaroundSpeed === 'rushSameDay' ? 'text-neutral-300' : 'text-neutral-500'}`}>
-                    Dubai Atelier Rush
-                  </div>
-                  <div className={`text-[10px] mt-1 font-mono ${turnaroundSpeed === 'rushSameDay' ? 'text-amber-300' : 'text-neutral-600 font-medium'}`}>
-                    +AED 90
-                  </div>
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Right Column: Interactive Configurator Controls */}
@@ -751,6 +671,79 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
 
             {/* Bottom Real-time Cost Breakdown & Action */}
             <div className="pt-4 border-t border-neutral-200">
+              {/* Turnaround speed selection */}
+              <div>
+                <label className="block text-xs font-semibold text-neutral-900 mb-2 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-neutral-600" />
+                  {isArabic ? 'سرعة الإنتاج والتسليم في الإمارات' : 'Turnaround Speed (UAE Delivery)'}
+                </label>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTurnaroundSpeed('standard')}
+                    className={`p-2.5 rounded-lg border text-left transition-all ${
+                      turnaroundSpeed === 'standard'
+                        ? 'border-neutral-900 bg-neutral-900 text-white shadow-sm'
+                        : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
+                    }`}
+                  >
+                    <div className="text-xs font-semibold">Standard</div>
+                    <div className={`text-[10px] ${turnaroundSpeed === 'standard' ? 'text-neutral-300' : 'text-neutral-500'}`}>
+                      {product.leadTimeDays} Days Regular
+                    </div>
+                    <div className={`text-[10px] mt-1 font-mono ${turnaroundSpeed === 'standard' ? 'text-amber-300' : 'text-neutral-400'}`}>
+                      Base rate
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTurnaroundSpeed('express24h')}
+                    className={`p-2.5 rounded-lg border text-left transition-all ${
+                      turnaroundSpeed === 'express24h'
+                        ? 'border-neutral-900 bg-neutral-900 text-white shadow-sm'
+                        : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
+                    }`}
+                  >
+                    <div className="text-xs font-semibold flex items-center justify-between">
+                      <span>Express</span>
+                      <Zap className="w-3 h-3 text-amber-400" />
+                    </div>
+                    <div className={`text-[10px] ${turnaroundSpeed === 'express24h' ? 'text-neutral-300' : 'text-neutral-500'}`}>
+                      24h Dispatch
+                    </div>
+                    <div className={`text-[10px] mt-1 font-mono ${turnaroundSpeed === 'express24h' ? 'text-amber-300' : 'text-neutral-600 font-medium'}`}>
+                      +AED 45
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTurnaroundSpeed('rushSameDay')}
+                    className={`p-2.5 rounded-lg border text-left transition-all ${
+                      turnaroundSpeed === 'rushSameDay'
+                        ? 'border-neutral-900 bg-neutral-900 text-white shadow-sm'
+                        : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
+                    }`}
+                  >
+                    <div className="text-xs font-semibold flex items-center justify-between">
+                      <span>Same-Day</span>
+                      <Sparkles className="w-3 h-3 text-amber-400" />
+                    </div>
+                    <div className={`text-[10px] ${turnaroundSpeed === 'rushSameDay' ? 'text-neutral-300' : 'text-neutral-500'}`}>
+                      Dubai Atelier Rush
+                    </div>
+                    <div className={`text-[10px] mt-1 font-mono ${turnaroundSpeed === 'rushSameDay' ? 'text-amber-300' : 'text-neutral-600 font-medium'}`}>
+                      +AED 90
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <div className="my-5 w-full border-t-[1.5px] border-[#cfcfcf]" aria-hidden="true" />
+
+              <div>
               <div className="space-y-1 text-xs text-neutral-600 mb-3">
                 <div className="flex items-center justify-between">
                   <span>Unit cost ({quantity} {product.unitLabel}):</span>
@@ -817,10 +810,12 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
                   </span>
                 )}
               </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
+      {showArtworkGuide && <BusinessCardArtworkGuide onClose={() => setShowArtworkGuide(false)} />}
     </div>
   );
 };
