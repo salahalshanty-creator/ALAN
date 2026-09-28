@@ -216,13 +216,17 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
                     <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
                       <span className="font-semibold text-neutral-700">Finishes:</span>
-                      <span className="truncate">{product.availableFinishes.slice(0, 3).map(f => f.name.split(' ')[0]).join(', ')} +more</span>
+                      <span className="truncate">
+                        {product.catalogFinishSummary
+                          ? product.catalogFinishSummary
+                          : `${product.availableFinishes.slice(0, 3).map(f => f.name.split(' ')[0]).join(', ')} +more`}
+                      </span>
                     </div>
                   </div>
 
                   {/* Highlights */}
                   <ul className="mt-3 space-y-1 text-[11px] text-neutral-600">
-                    {product.specHighlights.slice(0, 2).map((highlight, idx) => (
+                    {product.specHighlights.slice(0, product.catalogHighlightCount ?? 2).map((highlight, idx) => (
                       <li key={idx} className="flex items-start gap-1.5">
                         <Check className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
                         <span>{highlight}</span>

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Product, PaperStock, PrintFinish, PrintSize, TurnaroundSpeed, CartItem } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { Product, PaperStock, PrintFinish, PrintSize, TurnaroundSpeed, CartItem, PrintedSide } from '../types';
 import { calculateCustomPrice, formatAED } from '../utils/pricing';
-import { InteractiveFinishMockup } from './InteractiveFinishMockup';
+import { InteractiveFinishMockup, ArtworkEditorState } from './InteractiveFinishMockup';
 import { 
   X, 
   Upload, 
@@ -25,6 +25,22 @@ interface ProductConfiguratorModalProps {
   isArabic?: boolean;
 }
 
+interface ArtworkFile {
+  name: string;
+  size: string;
+  status: string;
+  previewUrl?: string;
+  editor: ArtworkEditorState;
+}
+
+const ARTWORK_FILE_TYPES = '.pdf,.ai,.eps,.psd,.tif,.tiff,.png,.jpg,.jpeg,.webp';
+const DEFAULT_ARTWORK_EDITOR: ArtworkEditorState = {
+  positionX: 0,
+  positionY: 0,
+  zoom: 1,
+  mode: 'fit',
+};
+
 export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> = ({
   product,
   isOpen,
@@ -44,6 +60,9 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
   const [selectedSize, setSelectedSize] = useState<PrintSize>(
     product.availableSizes[0]
   );
+  const [selectedPrintedSides, setSelectedPrintedSides] = useState<PrintedSide[]>(
+    product.printedSideOptions?.map((option) => option.id) ?? []
+  );
 
   // Custom dimension controls if custom size is picked
   const [isCustomDimension, setIsCustomDimension] = useState<boolean>(false);
@@ -57,9 +76,26 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
 
   // Speed & Artwork
   const [turnaroundSpeed, setTurnaroundSpeed] = useState<TurnaroundSpeed>('standard');
-  const [artworkFile, setArtworkFile] = useState<{ name: string; size: string; status: string } | null>(null);
+  const [frontArtwork, setFrontArtwork] = useState<ArtworkFile | null>(null);
+  const [backArtwork, setBackArtwork] = useState<ArtworkFile | null>(null);
+  const [activePreviewSide, setActivePreviewSide] = useState<PrintedSide>('front');
+  const artworkObjectUrlRefs = useRef<Record<PrintedSide, string | null>>({ front: null, back: null });
   const [customNotes, setCustomNotes] = useState('');
   const [addedSuccess, setAddedSuccess] = useState(false);
+
+  const replaceArtworkObjectUrl = (side: PrintedSide, nextUrl: string | null) => {
+    if (artworkObjectUrlRefs.current[side]) {
+      URL.revokeObjectURL(artworkObjectUrlRefs.current[side]!);
+    }
+    artworkObjectUrlRefs.current[side] = nextUrl;
+  };
+
+  useEffect(() => () => {
+    (['front', 'back'] as PrintedSide[]).forEach((side) => {
+      if (artworkObjectUrlRefs.current[side]) URL.revokeObjectURL(artworkObjectUrlRefs.current[side]!);
+      artworkObjectUrlRefs.current[side] = null;
+    });
+  }, []);
 
   // Reset when product changes
   useEffect(() => {
@@ -67,10 +103,15 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
       setSelectedStock(product.availableStocks[0]);
       setSelectedFinish(product.availableFinishes[0]);
       setSelectedSize(product.availableSizes[0]);
+      setSelectedPrintedSides(product.printedSideOptions?.map((option) => option.id) ?? []);
       setIsCustomDimension(product.availableSizes[0].isCustom || false);
       setQuantity(product.minQty);
       setIsCustomQtyMode(false);
-      setArtworkFile(null);
+      replaceArtworkObjectUrl('front', null);
+      replaceArtworkObjectUrl('back', null);
+      setFrontArtwork(null);
+      setBackArtwork(null);
+      setActivePreviewSide('front');
       setCustomNotes('');
     }
   }, [product]);
@@ -86,6 +127,32 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
     }
   };
 
+  const togglePrintedSide = (side: PrintedSide) => {
+    setSelectedPrintedSides((current) => {
+      if (current.includes(side)) {
+        return current.length === 1 ? current : current.filter((item) => item !== side);
+      }
+      return [...current, side];
+    });
+  };
+
+  const availableArtworkSides: PrintedSide[] = product.printedSideOptions
+    ? selectedPrintedSides
+    : ['front'];
+
+  useEffect(() => {
+    if (!availableArtworkSides.includes(activePreviewSide)) {
+      setActivePreviewSide(availableArtworkSides[0] ?? 'front');
+    }
+  }, [activePreviewSide, selectedPrintedSides]);
+
+  const physicalWidthMm = isCustomDimension
+    ? customWidthMm * (customUnit === 'cm' ? 10 : 1)
+    : selectedSize.widthMm ?? 90;
+  const physicalHeightMm = isCustomDimension
+    ? customHeightMm * (customUnit === 'cm' ? 10 : 1)
+    : selectedSize.heightMm ?? 50;
+
   // Compute live price
   const priceData = calculateCustomPrice({
     product,
@@ -98,24 +165,62 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
     customHeightMm: isCustomDimension ? (customUnit === 'cm' ? customHeightMm * 10 : customHeightMm) : undefined,
   });
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (side: PrintedSide, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setArtworkFile({
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      const canPreviewInBrowser =
+        file.type === 'image/png' ||
+        file.type === 'image/jpeg' ||
+        file.type === 'image/webp' ||
+        extension === 'png' ||
+        extension === 'jpg' ||
+        extension === 'jpeg' ||
+        extension === 'webp';
+      const previewUrl = canPreviewInBrowser ? URL.createObjectURL(file) : undefined;
+
+      replaceArtworkObjectUrl(side, previewUrl ?? null);
+      const nextArtwork: ArtworkFile = {
         name: file.name,
         size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
         status: 'Vector Bleed & 300 DPI Verified',
-      });
+        previewUrl,
+        editor: { ...DEFAULT_ARTWORK_EDITOR },
+      };
+      if (side === 'front') setFrontArtwork(nextArtwork);
+      else setBackArtwork(nextArtwork);
+      setActivePreviewSide(side);
+
+      e.target.value = '';
     }
   };
 
   const handleUseDemoArtwork = () => {
-    setArtworkFile({
+    const side = activePreviewSide;
+    replaceArtworkObjectUrl(side, null);
+    const sampleArtwork: ArtworkFile = {
       name: `Al_Wasl_${product.title.replace(/\s+/g, '_')}_preflight_cmyk.ai`,
       size: '18.4 MB',
       status: 'Vector Bleed & 300 DPI Verified',
-    });
+      editor: { ...DEFAULT_ARTWORK_EDITOR },
+    };
+    if (side === 'front') setFrontArtwork(sampleArtwork);
+    else setBackArtwork(sampleArtwork);
   };
+
+  const handleRemoveArtwork = (side: PrintedSide) => {
+    replaceArtworkObjectUrl(side, null);
+    if (side === 'front') setFrontArtwork(null);
+    else setBackArtwork(null);
+  };
+
+  const updateActiveArtworkEditor = (editor: ArtworkEditorState) => {
+    const updateArtwork = (current: ArtworkFile | null) => current ? { ...current, editor } : current;
+    if (activePreviewSide === 'front') setFrontArtwork(updateArtwork);
+    else setBackArtwork(updateArtwork);
+  };
+
+  const activeArtwork = activePreviewSide === 'front' ? frontArtwork : backArtwork;
 
   const handleAddToCartClick = () => {
     const cartItem: CartItem = {
@@ -132,6 +237,7 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
             label: `Custom Size (${customWidthMm} × ${customHeightMm} ${customUnit})`,
           }
         : selectedSize,
+      printedSides: product.printedSideOptions ? selectedPrintedSides : undefined,
       customDimensions: isCustomDimension
         ? {
             width: customWidthMm,
@@ -140,7 +246,7 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
           }
         : undefined,
       turnaroundSpeed,
-      artworkFileName: artworkFile ? artworkFile.name : undefined,
+      artworkFileName: [frontArtwork?.name, backArtwork?.name].filter(Boolean).join(' / ') || undefined,
       preflightPassed: true,
       customNotes,
       unitPriceAED: priceData.unitPriceAED,
@@ -158,11 +264,11 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-sm overflow-y-auto">
       <div 
-        className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden my-6 transition-all"
+        className="relative flex w-full max-w-[1560px] max-h-[94vh] flex-col bg-white rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden my-3 sm:my-4 transition-all lg:w-[96vw]"
         dir={isArabic ? 'rtl' : 'ltr'}
       >
         {/* Header bar */}
-        <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between bg-neutral-50/70">
+        <div className="shrink-0 px-6 py-4 border-b border-neutral-200 flex items-center justify-between bg-neutral-50/70">
           <div>
             <div className="flex items-center gap-2 text-xs text-neutral-500 font-medium">
               <span className="text-amber-800 font-semibold">{isArabic ? product.categoryNameAr : product.categoryName}</span>
@@ -184,14 +290,20 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
         </div>
 
         {/* Modal body grid: Left = Visual Preview & Artwork, Right = Controls & Live Price */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 max-h-[80vh] overflow-y-auto">
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-12">
           {/* Left Column */}
           <div className="lg:col-span-6 p-6 border-b lg:border-b-0 lg:border-r border-neutral-200 bg-[#FDFDFD] flex flex-col gap-6">
             <InteractiveFinishMockup
               productTitle={product.title}
               selectedStock={selectedStock}
               selectedFinish={selectedFinish}
-              uploadedArtworkName={artworkFile?.name}
+              artwork={activeArtwork}
+              activeSide={activePreviewSide}
+              availableSides={availableArtworkSides}
+              onActiveSideChange={setActivePreviewSide}
+              onArtworkEditorChange={updateActiveArtworkEditor}
+              widthMm={physicalWidthMm}
+              heightMm={physicalHeightMm}
               isArabic={isArabic}
             />
 
@@ -211,39 +323,43 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
                 </button>
               </div>
 
-              {artworkFile ? (
-                <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center gap-2.5 overflow-hidden">
-                    <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <div className="truncate">
-                      <p className="text-xs font-medium text-emerald-950 truncate">{artworkFile.name}</p>
-                      <p className="text-[11px] text-emerald-700">{artworkFile.size} · {artworkFile.status}</p>
+              <div className="space-y-3">
+                {availableArtworkSides.map((side) => {
+                  const artwork = side === 'front' ? frontArtwork : backArtwork;
+                  const sideLabel = side === 'front' ? 'Front' : 'Back';
+                  return (
+                    <div key={side} className="space-y-1.5">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-500">{sideLabel} Artwork</div>
+                      {artwork ? (
+                        <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-lg flex items-center justify-between">
+                          <button type="button" onClick={() => setActivePreviewSide(side)} className="flex min-w-0 items-center gap-2.5 text-left">
+                            <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span className="truncate">
+                              <span className="block text-xs font-medium text-emerald-950 truncate">{artwork.name}</span>
+                              <span className="block text-[11px] text-emerald-700">{artwork.size} · {artwork.status}</span>
+                            </span>
+                          </button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <label className="text-[11px] font-medium text-emerald-700 hover:text-emerald-900 cursor-pointer px-1.5 py-1">
+                              Replace
+                              <input type="file" className="hidden" accept={ARTWORK_FILE_TYPES} onChange={(event) => handleFileUpload(side, event)} />
+                            </label>
+                            <button type="button" onClick={() => handleRemoveArtwork(side)} className="text-xs text-neutral-400 hover:text-neutral-600 p-1" aria-label={`Remove ${sideLabel} artwork`}>
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="border-2 border-dashed border-neutral-200 hover:border-amber-500 rounded-lg p-3 flex items-center justify-center gap-2 text-center cursor-pointer transition-colors bg-neutral-50/60 hover:bg-amber-50/30">
+                          <Upload className="w-4 h-4 text-neutral-400" />
+                          <span className="text-xs font-medium text-neutral-800">Upload {sideLabel} Design</span>
+                          <input type="file" className="hidden" accept={ARTWORK_FILE_TYPES} onChange={(event) => handleFileUpload(side, event)} />
+                        </label>
+                      )}
                     </div>
-                  </div>
-                  <button
-                    onClick={() => setArtworkFile(null)}
-                    className="text-xs text-neutral-400 hover:text-neutral-600 p-1"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <label className="border-2 border-dashed border-neutral-200 hover:border-amber-500 rounded-lg p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-neutral-50/60 hover:bg-amber-50/30">
-                  <Upload className="w-5 h-5 text-neutral-400 mb-1" />
-                  <p className="text-xs font-medium text-neutral-800">
-                    {isArabic ? 'اضغط لرفع ملف التصميم (PDF, AI, PSD, EPS)' : 'Click to upload artwork (PDF, AI, EPS, PSD, TIFF)'}
-                  </p>
-                  <p className="text-[11px] text-neutral-400 mt-0.5">
-                    {isArabic ? 'تحقق تلقائي من دقة 300 DPI وخطوط القص 3 مم' : 'Automatic verification of 300 DPI, CMYK color and 3mm bleed'}
-                  </p>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept=".pdf,.ai,.eps,.psd,.png,.jpg"
-                    onChange={handleFileUpload}
-                  />
-                </label>
-              )}
+                  );
+                })}
+              </div>
 
               {/* Special instructions */}
               <div className="mt-3">
@@ -493,11 +609,13 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
                 <label className="block text-xs font-semibold text-neutral-900 mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <Scissors className="w-3.5 h-3.5 text-neutral-600" />
-                    {isArabic ? 'خيارات التشطيب (Finishing Choices)' : 'Finishing Choices (Lamination, UV, Die-Cut)'}
+                    {isArabic ? 'خيارات التشطيب (Finishing Choices)' : product.configuratorFinishHeading ?? 'Finishing Choices (Lamination, UV, Die-Cut)'}
                   </span>
-                  <span className="text-[10px] text-neutral-500 font-normal">
-                    Precision Swiss Tooling
-                  </span>
+                  {!product.hideConfiguratorFinishDetails && (
+                    <span className="text-[10px] text-neutral-500 font-normal">
+                      Precision Swiss Tooling
+                    </span>
+                  )}
                 </label>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -523,19 +641,57 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
                           />
                         )}
                       </div>
-                      <div className="text-[10px] text-neutral-500 line-clamp-1">
-                        {finish.description}
-                      </div>
-                      <div className="text-[10px] text-amber-800 font-mono mt-1 font-semibold">
-                        {finish.extraAED > 0 ? `+AED ${finish.extraAED}` : 'Included'}
-                      </div>
+                      {!product.hideConfiguratorFinishDetails && (
+                        <>
+                          <div className="text-[10px] text-neutral-500 line-clamp-1">
+                            {finish.description}
+                          </div>
+                          <div className="text-[10px] text-amber-800 font-mono mt-1 font-semibold">
+                            {finish.extraAED > 0 ? `+AED ${finish.extraAED}` : 'Included'}
+                          </div>
+                        </>
+                      )}
                     </button>
                   ))}
                 </div>
+
               </div>
 
+              {product.printedSideOptions && product.printedSideOptions.length > 0 && (
+                <div>
+                  <label className="mb-2 block text-xs font-semibold text-neutral-900">
+                    Printed Side
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {product.printedSideOptions.map((option) => {
+                      const isSelected = selectedPrintedSides.includes(option.id);
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => togglePrintedSide(option.id)}
+                          className={`flex items-center justify-between rounded-lg border p-2.5 text-left text-xs transition-all ${
+                            isSelected
+                              ? 'border-amber-600 bg-amber-50/40 font-medium text-neutral-900 ring-1 ring-amber-600'
+                              : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
+                          }`}
+                        >
+                          <span className="font-semibold">{option.label}</span>
+                          <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${
+                            isSelected ? 'border-amber-600 bg-amber-600 text-white' : 'border-neutral-300'
+                          }`}>
+                            {isSelected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* 4. Quantity (Presets + Custom Quantity Input) */}
-              <div>
+              {!product.hideQuantityConfigurator && <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-neutral-900">
                     {isArabic ? 'الكمية المطلوبة (Quantity)' : 'Print Quantity & Volume Tiers'}
@@ -590,7 +746,7 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
                     <span className="text-xs text-neutral-500 font-medium">{product.unitLabel}</span>
                   </div>
                 )}
-              </div>
+              </div>}
             </div>
 
             {/* Bottom Real-time Cost Breakdown & Action */}

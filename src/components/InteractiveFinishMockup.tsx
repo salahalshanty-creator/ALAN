@@ -1,12 +1,31 @@
 import React, { useState, useRef } from 'react';
 import { PrintFinish, PaperStock } from '../types';
-import { Sparkles, Eye, CheckCircle2, ShieldCheck, Ruler, Layers } from 'lucide-react';
+import { Sparkles, CheckCircle2, ShieldCheck, Ruler, Minus, Plus, RotateCcw } from 'lucide-react';
+
+export interface ArtworkEditorState {
+  positionX: number;
+  positionY: number;
+  zoom: number;
+  mode: 'fit' | 'fill';
+}
+
+interface PreviewArtwork {
+  name: string;
+  previewUrl?: string;
+  editor: ArtworkEditorState;
+}
 
 interface InteractiveFinishMockupProps {
   productTitle: string;
   selectedStock: PaperStock;
   selectedFinish: PrintFinish;
-  uploadedArtworkName?: string;
+  artwork: PreviewArtwork | null;
+  activeSide: 'front' | 'back';
+  availableSides: ('front' | 'back')[];
+  onActiveSideChange: (side: 'front' | 'back') => void;
+  onArtworkEditorChange: (editor: ArtworkEditorState) => void;
+  widthMm: number;
+  heightMm: number;
   isArabic?: boolean;
 }
 
@@ -14,13 +33,58 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
   productTitle,
   selectedStock,
   selectedFinish,
-  uploadedArtworkName,
+  artwork,
+  activeSide,
+  availableSides,
+  onActiveSideChange,
+  onArtworkEditorChange,
+  widthMm,
+  heightMm,
   isArabic = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ pointerId: number; x: number; y: number; startX: number; startY: number } | null>(null);
   const [lightPos, setLightPos] = useState({ x: 50, y: 50 });
   const [showBleedGuides, setShowBleedGuides] = useState(false);
-  const [activeSide, setActiveSide] = useState<'front' | 'back'>('front');
+
+  const artworkPreviewUrl = artwork?.previewUrl;
+  const uploadedArtworkName = artwork?.name;
+  const editor = artwork?.editor;
+  const aspectRatio = Math.max(1, widthMm) / Math.max(1, heightMm);
+  const landscapeFit = aspectRatio >= 1.14;
+  const formatDimension = (value: number) => Number.isInteger(value) ? value.toString() : value.toFixed(1);
+
+  const updateEditor = (updates: Partial<ArtworkEditorState>) => {
+    if (!editor) return;
+    onArtworkEditorChange({ ...editor, ...updates });
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!artworkPreviewUrl || !editor || !cardRef.current) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      startX: editor.positionX,
+      startY: editor.positionY,
+    };
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId || !cardRef.current || !editor) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    updateEditor({
+      positionX: drag.startX + ((event.clientX - drag.x) / rect.width) * 100,
+      positionY: drag.startY + ((event.clientY - drag.y) / rect.height) * 100,
+    });
+  };
+
+  const stopDragging = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+  };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
@@ -92,17 +156,43 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
             {isArabic ? 'خطوط القص والأمان' : 'Bleed & Trim Guides'}
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveSide(activeSide === 'front' ? 'back' : 'front')}
-            className="px-2.5 py-1 text-xs bg-neutral-100 text-neutral-600 hover:text-neutral-900 rounded transition-colors flex items-center gap-1"
-          >
-            <Layers className="w-3 h-3" />
-            {activeSide === 'front' 
-              ? (isArabic ? 'الوجه الأمامي' : 'Front View') 
-              : (isArabic ? 'الوجه الخلفي' : 'Reverse View')}
-          </button>
+          <div className="flex overflow-hidden rounded border border-neutral-200 bg-neutral-100">
+            {availableSides.map((side) => (
+              <button
+                key={side}
+                type="button"
+                onClick={() => onActiveSideChange(side)}
+                className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+                  activeSide === side ? 'bg-neutral-900 text-white' : 'text-neutral-600 hover:text-neutral-900'
+                }`}
+              >
+                {side === 'front' ? 'Front' : 'Back'}
+              </button>
+            ))}
+          </div>
         </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <div>
+          <span className="font-semibold text-neutral-900">{activeSide === 'front' ? 'Front' : 'Back'} Preview</span>
+          <span className="ml-2 font-mono text-neutral-500">{formatDimension(widthMm)} × {formatDimension(heightMm)} mm</span>
+        </div>
+        {artworkPreviewUrl && editor && (
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            {(['fit', 'fill'] as const).map((mode) => (
+              <button key={mode} type="button" onClick={() => updateEditor({ mode, positionX: 0, positionY: 0, zoom: 1 })} className={`rounded px-2 py-1 text-[11px] font-medium ${editor.mode === mode ? 'bg-amber-100 text-amber-900' : 'bg-neutral-100 text-neutral-600 hover:text-neutral-900'}`}>
+                {mode === 'fit' ? 'Fit' : 'Fill'}
+              </button>
+            ))}
+            <button type="button" onClick={() => updateEditor({ zoom: Math.max(0.25, editor.zoom - 0.1) })} className="rounded bg-neutral-100 p-1 text-neutral-600 hover:text-neutral-900" aria-label="Zoom out"><Minus className="h-3.5 w-3.5" /></button>
+            <span className="min-w-10 text-center font-mono text-[10px] text-neutral-500">{Math.round(editor.zoom * 100)}%</span>
+            <button type="button" onClick={() => updateEditor({ zoom: Math.min(4, editor.zoom + 0.1) })} className="rounded bg-neutral-100 p-1 text-neutral-600 hover:text-neutral-900" aria-label="Zoom in"><Plus className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={() => updateEditor({ positionX: 0, positionY: 0, zoom: 1 })} className="flex items-center gap-1 rounded bg-neutral-100 px-2 py-1 text-[11px] text-neutral-600 hover:text-neutral-900">
+              <RotateCcw className="h-3 w-3" /> Reset
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Interactive 3D Card Simulator Canvas */}
@@ -127,8 +217,19 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
 
         {/* The Card / Print Substrate */}
         <div
-          className="relative w-[82%] h-[72%] rounded-md transition-all duration-150 ease-out select-none flex flex-col justify-between p-6 sm:p-8"
+          ref={cardRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={stopDragging}
+          onPointerCancel={stopDragging}
+          className={`relative rounded-md overflow-hidden transition-all duration-150 ease-out select-none flex flex-col justify-between p-6 sm:p-8 ${artworkPreviewUrl ? 'cursor-grab active:cursor-grabbing' : ''}`}
           style={{
+            width: landscapeFit ? '82%' : 'auto',
+            height: landscapeFit ? 'auto' : '72%',
+            maxWidth: '82%',
+            maxHeight: '72%',
+            aspectRatio: `${Math.max(1, widthMm)} / ${Math.max(1, heightMm)}`,
+            touchAction: artworkPreviewUrl ? 'none' : 'auto',
             transform: `perspective(900px) rotateY(${ (lightPos.x - 50) * 0.15 }deg) rotateX(${ (lightPos.y - 50) * -0.15 }deg)`,
             backgroundColor: isDarkStock ? '#141416' : '#FAF9F5',
             color: isDarkStock ? '#FFFFFF' : '#171717',
@@ -139,6 +240,19 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
             `,
           }}
         >
+          {artworkPreviewUrl && (
+            <img
+              src={artworkPreviewUrl}
+              alt={uploadedArtworkName ? `Uploaded artwork preview: ${uploadedArtworkName}` : 'Uploaded artwork preview'}
+              draggable={false}
+              className={`absolute inset-0 z-0 h-full w-full pointer-events-none ${editor?.mode === 'fill' ? 'object-cover' : 'object-contain'}`}
+              style={{
+                transform: `translate(${editor?.positionX ?? 0}%, ${editor?.positionY ?? 0}%) scale(${editor?.zoom ?? 1})`,
+                transformOrigin: 'center',
+              }}
+            />
+          )}
+
           {/* Paper Texture Overlay */}
           <div 
             className="absolute inset-0 pointer-events-none opacity-40 mix-blend-multiply rounded-md"
@@ -160,20 +274,23 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
 
           {/* Bleed lines overlay if enabled */}
           {showBleedGuides && (
-            <div className="absolute inset-0 pointer-events-none border-2 border-dashed border-red-500/60 rounded-md">
+            <div className="absolute inset-0 z-20 pointer-events-none border-2 border-dashed border-red-500/60 rounded-md">
               <span className="absolute top-1 left-2 text-[9px] font-mono text-red-600 bg-white/90 px-1 rounded">
-                Trim Cut Line (0mm)
+                Bleed Boundary (+3mm)
               </span>
-              <div className="absolute inset-2 border border-emerald-500/50">
-                <span className="absolute bottom-1 right-2 text-[9px] font-mono text-emerald-700 bg-white/90 px-1 rounded">
-                  Safe Zone Margin (4mm)
-                </span>
+              <div className="absolute inset-2 border border-amber-500/70">
+                <span className="absolute top-1 right-2 text-[9px] font-mono text-amber-700 bg-white/90 px-1 rounded">Final Trim</span>
+                <div className="absolute inset-2 border border-emerald-500/50">
+                  <span className="absolute bottom-1 right-2 text-[9px] font-mono text-emerald-700 bg-white/90 px-1 rounded">
+                    Safe Zone Margin (4mm)
+                  </span>
+                </div>
               </div>
             </div>
           )}
 
           {/* Top Brand Element on Card */}
-          <div className="relative z-10 flex items-start justify-between">
+          {!artworkPreviewUrl && <div className="relative z-10 flex items-start justify-between">
             <div>
               {/* Emblem / Monogram */}
               <div 
@@ -211,10 +328,10 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
                 {selectedStock?.weightGsm} GSM · {selectedStock?.name.split(' ')[0]}
               </div>
             </div>
-          </div>
+          </div>}
 
           {/* Centerpiece Typographic Treatment with Active Finish Effect */}
-          <div className="relative z-10 my-auto text-left">
+          {!artworkPreviewUrl && <div className="relative z-10 my-auto text-left">
             <h4
               className="text-xl sm:text-2xl font-serif font-bold tracking-tight transition-all duration-150"
               style={{
@@ -252,10 +369,10 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
                 ✦ 3D Raised Polymer Varnish Layer Active
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Bottom Coordinates & QR/Vector Mark */}
-          <div className="relative z-10 flex items-end justify-between text-[10px] border-t pt-2"
+          {!artworkPreviewUrl && <div className="relative z-10 flex items-end justify-between text-[10px] border-t pt-2"
             style={{
               borderColor: isDarkStock ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
               color: isDarkStock ? '#8E8E93' : '#737373',
@@ -271,7 +388,7 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
                 {selectedFinish?.name.split(' ')[0]} {selectedFinish?.type.toUpperCase()}
               </span>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
 

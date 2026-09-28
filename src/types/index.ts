@@ -74,7 +74,15 @@ export interface Product {
   availableSizes: PrintSize[];
   quantityTiers: QuantityTier[];
   specHighlights: string[];
+  catalogFinishSummary?: string;
+  catalogHighlightCount?: number;
+  configuratorFinishHeading?: string;
+  hideConfiguratorFinishDetails?: boolean;
+  hideQuantityConfigurator?: boolean;
+  printedSideOptions?: { id: PrintedSide; label: string }[];
 }
+
+export type PrintedSide = 'front' | 'back';
 
 export type TurnaroundSpeed = 'standard' | 'express24h' | 'rushSameDay';
 
@@ -85,6 +93,7 @@ export interface CartItem {
   selectedStock: PaperStock;
   selectedFinish: PrintFinish;
   selectedSize: PrintSize;
+  printedSides?: PrintedSide[];
   customDimensions?: {
     width: number;
     height: number;
