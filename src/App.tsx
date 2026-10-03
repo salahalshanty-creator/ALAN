@@ -15,7 +15,7 @@ import { OrderConfirmationModal } from './components/OrderConfirmationModal';
 import { OrderTrackerModal } from './components/OrderTrackerModal';
 import { SwatchKitModal } from './components/SwatchKitModal';
 import { CustomQuoteModal } from './components/CustomQuoteModal';
-import { Sparkles, Truck, ShieldCheck, Zap } from 'lucide-react';
+import { ShoppingBag, Sparkles, Truck, ShieldCheck, Zap } from 'lucide-react';
 import { OffersPage, WorkPage, AboutPage } from './components/MarketingPages';
 import { WhatsAppWidget } from './components/WhatsAppWidget';
 
@@ -105,8 +105,8 @@ export default function App() {
 
   return (
     <div className={`min-h-screen flex flex-col bg-[#FBFBFA] ${isArabic ? 'font-arabic' : 'font-sans'}`}>
-      <aside aria-label="Announcement" className="bg-[#1C1B1A] text-neutral-300 text-[11px] py-2 border-b border-neutral-800"><div className="site-shell flex items-center justify-center gap-2 text-center"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /><span className="text-white font-medium">ALAN ADVERTISMENT AND PRINTING</span><span>Professional Advertising & Printing Solutions · UAE</span></div></aside>
-      <Navbar cartCount={cartItems.length} onOpenCart={() => setIsCartOpen(true)} onOpenTracker={openTracker} onOpenSwatchModal={() => setIsSwatchModalOpen(true)} onOpenQuoteModal={() => setIsQuoteModalOpen(true)} onScrollToCatalog={scrollToCatalog} onNavigateToAIDesign={navigateToAIDesign} onNavigate={navigate} isArabic={isArabic} onToggleLanguage={() => setIsArabic(v => !v)} />
+      <aside aria-label="Announcement" className="bg-[#1C1B1A] text-neutral-300 text-[11px] py-2 border-b border-neutral-800"><div className="site-shell flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2"><span className="w-1.5 h-1.5 shrink-0 rounded-full bg-amber-400" /><span className="hidden text-white font-medium sm:inline">ALAN ADVERTISMENT AND PRINTING</span><span className="truncate">Professional Advertising & Printing Solutions · UAE</span></div><div className="flex shrink-0 items-center gap-3"><div className="flex items-center gap-1 font-semibold tracking-wide"><button type="button" onClick={() => !isArabic && setIsArabic(true)} disabled={isArabic} className={isArabic ? 'text-white' : 'text-neutral-500 hover:text-neutral-200'} aria-pressed={isArabic}>AR</button><span className="text-neutral-600">|</span><button type="button" onClick={() => isArabic && setIsArabic(false)} disabled={!isArabic} className={!isArabic ? 'text-white' : 'text-neutral-500 hover:text-neutral-200'} aria-pressed={!isArabic}>EN</button></div><button type="button" onClick={() => setIsCartOpen(true)} className="relative text-neutral-100 hover:text-white" aria-label="View Cart"><ShoppingBag className="h-4 w-4" />{cartItems.length > 0 && <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-1 text-[9px] font-bold text-neutral-950">{cartItems.length}</span>}</button></div></div></aside>
+      <Navbar onOpenTracker={openTracker} onOpenSwatchModal={() => setIsSwatchModalOpen(true)} onOpenQuoteModal={() => setIsQuoteModalOpen(true)} onScrollToCatalog={scrollToCatalog} onNavigateToAIDesign={navigateToAIDesign} onNavigate={navigate} isArabic={isArabic} />
       <main className="flex-1">{page}</main>
       <Footer onOpenTracker={openTracker} onOpenSwatchModal={() => setIsSwatchModalOpen(true)} onOpenQuoteModal={() => setIsQuoteModalOpen(true)} onScrollToCatalog={scrollToCatalog} isArabic={isArabic} onNavigate={navigate} />
 

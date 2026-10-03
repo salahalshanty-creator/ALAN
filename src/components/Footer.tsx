@@ -1,5 +1,6 @@
 import React from 'react';
 import { MapPin, Phone, Clock } from 'lucide-react';
+import footerLogo from '../assets/branding/alan-mark.png';
 
 interface FooterProps {
   onOpenTracker: () => void;
@@ -25,11 +26,7 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Col 1: Brand & UAE credentials */}
           <div className="lg:col-span-2 space-y-4">
             <div>
-              <img src="/images/alan-logo.png" alt="ALAN Advertisement and Printing" className="h-16 w-auto max-w-[250px] object-contain object-left" />
-              <span className="sr-only">
-                ALAN ADVERTISMENT AND PRINTING
-              </span>
-              <p className="text-neutral-400 text-xs mt-1">ALAN ADVERTISMENT AND PRINTING · UAE</p>
+              <img src={footerLogo} alt="ALAN Advertisement and Printing" className="w-[330px] max-w-full h-auto object-contain object-left" />
             </div>
 
             <p className="text-neutral-400 text-xs leading-relaxed max-w-sm">
