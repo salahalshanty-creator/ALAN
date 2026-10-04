@@ -27,6 +27,9 @@ interface InteractiveFinishMockupProps {
   widthMm: number;
   heightMm: number;
   isArabic?: boolean;
+  premiumEffects?: { lamination: 'matt' | 'glossy' | 'velvet'; spotUv: boolean; foilColor: 'none' | 'gold' | 'silver'; customDieCut: boolean; roundCorner: boolean };
+  afterPreflight?: React.ReactNode;
+  isFlyerPreview?: boolean;
 }
 
 export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = ({
@@ -41,6 +44,9 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
   widthMm,
   heightMm,
   isArabic = false,
+  premiumEffects,
+  afterPreflight,
+  isFlyerPreview = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -102,13 +108,14 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
   };
 
   const isDarkStock = selectedStock?.id === 'fedrigoni-black';
-  const isFoil = selectedFinish?.type === 'foil';
-  const isUV = selectedFinish?.type === 'uv';
+  const isFoil = premiumEffects ? premiumEffects.foilColor !== 'none' : selectedFinish?.type === 'foil';
+  const isUV = premiumEffects ? premiumEffects.spotUv : selectedFinish?.type === 'uv';
   const isEmboss = selectedFinish?.type === 'emboss';
-  const isMattLamination = selectedFinish?.id === 'matt-lamination';
-  const isGlossyLamination = selectedFinish?.id === 'glossy-lamination';
+  const isMattLamination = premiumEffects ? premiumEffects.lamination === 'matt' || premiumEffects.lamination === 'velvet' : selectedFinish?.id === 'matt-lamination';
+  const isGlossyLamination = premiumEffects ? premiumEffects.lamination === 'glossy' : selectedFinish?.id === 'glossy-lamination';
   const isWithoutLamination = selectedFinish?.id === 'without-lamination';
-  const isRoundCorner = selectedFinish?.id === 'round-corner';
+  const isRoundCorner = premiumEffects ? premiumEffects.roundCorner : selectedFinish?.id === 'round-corner';
+  const isCustomDieCut = premiumEffects?.customDieCut ?? false;
 
   const reflectionCenter = Math.max(8, Math.min(92, lightPos.x));
   const reflectionStart = Math.max(0, reflectionCenter - 24);
@@ -173,7 +180,7 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
 
   let activeMetallicFoil = foilGradient;
   if (selectedFinish?.id === 'rose-gold-foil') activeMetallicFoil = roseGoldGradient;
-  if (selectedFinish?.id === 'silver-foil') activeMetallicFoil = silverGradient;
+  if (selectedFinish?.id === 'silver-foil' || premiumEffects?.foilColor === 'silver') activeMetallicFoil = silverGradient;
 
   return (
     <div className="flex flex-col gap-3">
@@ -269,7 +276,7 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
           onPointerMove={handlePointerMove}
           onPointerUp={stopDragging}
           onPointerCancel={stopDragging}
-          className={`relative overflow-hidden transition-all duration-150 ease-out select-none flex flex-col justify-between p-6 sm:p-8 ${isRoundCorner ? 'rounded-2xl' : 'rounded-md'} ${artworkPreviewUrl ? 'cursor-grab active:cursor-grabbing' : ''}`}
+          className={`relative overflow-hidden transition-all duration-150 ease-out select-none flex flex-col justify-between ${isFlyerPreview ? 'p-0' : 'p-6 sm:p-8'} ${isRoundCorner ? 'rounded-2xl' : 'rounded-md'} ${artworkPreviewUrl ? 'cursor-grab active:cursor-grabbing' : ''}`}
           style={{
             width: landscapeFit ? '82%' : 'auto',
             height: landscapeFit ? 'auto' : '72%',
@@ -277,6 +284,7 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
             maxHeight: '72%',
             aspectRatio: `${Math.max(1, widthMm)} / ${Math.max(1, heightMm)}`,
             touchAction: artworkPreviewUrl ? 'none' : 'auto',
+            clipPath: isCustomDieCut ? 'polygon(0 0, 93% 0, 100% 9%, 100% 100%, 7% 100%, 0 91%)' : undefined,
             transform: `perspective(900px) rotateY(${ (lightPos.x - 50) * 0.15 }deg) rotateX(${ (lightPos.y - 50) * -0.15 }deg)`,
             backgroundColor: isDarkStock ? '#141416' : '#FAF9F5',
             color: isDarkStock ? '#FFFFFF' : '#171717',
@@ -327,6 +335,9 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
             />
           )}
 
+          {isUV && <><div className="premium-spot-uv absolute z-[16] pointer-events-none left-[12%] top-[18%] h-10 w-10 rounded-full border border-white/45 bg-white/10 opacity-80 transition-opacity duration-300" style={{ boxShadow: `inset ${(lightPos.x - 50) * .08}px ${(lightPos.y - 50) * .08}px 10px rgba(255,255,255,.7), 0 0 12px rgba(255,255,255,.25)` }} /><div className="premium-spot-uv premium-spot-uv--bar absolute z-[16] pointer-events-none bottom-[18%] right-[12%] h-5 w-[36%] rounded-full bg-gradient-to-r from-white/5 via-white/50 to-white/5 opacity-75 transition-opacity duration-300" /></>}
+          {isCustomDieCut && <div className="absolute inset-1 z-[28] pointer-events-none border border-dashed border-amber-600/70 [clip-path:polygon(0_0,93%_0,100%_9%,100%_100%,7%_100%,0_91%)]" />}
+
           {/* Bleed lines overlay if enabled */}
           {showBleedGuides && (
             <div className="absolute inset-0 z-30 pointer-events-none border-2 border-dashed border-red-500/60 rounded-[inherit]">
@@ -350,12 +361,53 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
             </span>
           )}
 
+          {isFlyerPreview && !artworkPreviewUrl && (
+            <div className="absolute inset-0 z-10 grid grid-rows-[auto_1fr_auto] p-[12%] text-left">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                <div className="min-w-0">
+                  <div
+                    className="flex h-8 w-8 items-center justify-center rounded border font-serif text-sm font-bold tracking-widest"
+                    style={{
+                      borderColor: isFoil ? '#D4AF37' : (isDarkStock ? '#333' : '#E0DED7'),
+                      background: isFoil ? activeMetallicFoil : 'transparent',
+                      WebkitBackgroundClip: isFoil ? 'text' : undefined,
+                      WebkitTextFillColor: isFoil ? 'transparent' : (isDarkStock ? '#FFF' : '#111'),
+                    }}
+                  >
+                    AW
+                  </div>
+                  <p className="mt-2 whitespace-nowrap text-[clamp(0.42rem,0.72vw,0.6rem)] font-medium uppercase tracking-[0.12em]" style={{ color: isDarkStock ? '#9E9E9E' : '#737373' }}>
+                    ALAN ATELIER DUBAI
+                  </p>
+                </div>
+                <div className="shrink-0 whitespace-nowrap text-right font-serif italic leading-tight" style={{ color: isFoil ? '#D4AF37' : (isDarkStock ? '#A3A3A3' : '#525252') }}>
+                  <p className="text-[clamp(0.52rem,0.9vw,0.72rem)]">{activeSide === 'front' ? 'Executive Edition' : 'Prepress Registered'}</p>
+                  <p className="mt-1 font-mono text-[clamp(0.42rem,0.68vw,0.56rem)] not-italic text-neutral-400">{selectedStock.weightGsm} GSM · {selectedStock.finishType === 'gloss' ? 'Glossy' : selectedStock.finishType}</p>
+                </div>
+              </div>
+
+              <div className="flex min-h-0 flex-col justify-center py-3">
+                <h4 className="whitespace-nowrap font-serif text-[clamp(0.78rem,1.35vw,1.15rem)] font-bold leading-[1.05] tracking-tight" style={{ background: isFoil ? activeMetallicFoil : undefined, WebkitBackgroundClip: isFoil ? 'text' : undefined, WebkitTextFillColor: isFoil ? 'transparent' : (isDarkStock ? '#FAF8F5' : '#141414') }}>
+                  MOHAMMED
+                </h4>
+                <h4 className="mt-0.5 whitespace-nowrap font-serif text-[clamp(0.78rem,1.35vw,1.15rem)] font-bold leading-[1.05] tracking-tight" style={{ background: isFoil ? activeMetallicFoil : undefined, WebkitBackgroundClip: isFoil ? 'text' : undefined, WebkitTextFillColor: isFoil ? 'transparent' : (isDarkStock ? '#FAF8F5' : '#141414') }}>
+                  AL QASSIMI
+                </h4>
+              </div>
+
+              <div className="border-t pt-2" style={{ borderColor: isDarkStock ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)', color: isDarkStock ? '#8E8E93' : '#737373' }}>
+                <p className="whitespace-nowrap text-[clamp(0.46rem,0.72vw,0.6rem)] font-medium leading-tight">Managing Director</p>
+                <p className="mt-0.5 whitespace-nowrap text-[clamp(0.42rem,0.66vw,0.55rem)] leading-tight">DIFC Emirates Towers</p>
+              </div>
+            </div>
+          )}
+
           {/* Top Brand Element on Card */}
-          {!artworkPreviewUrl && <div className="relative z-10 flex items-start justify-between">
+          {!artworkPreviewUrl && !isFlyerPreview && <div className={`relative z-10 flex items-start justify-between gap-2 ${isFlyerPreview ? 'min-h-0' : ''}`}>
             <div>
               {/* Emblem / Monogram */}
               <div 
-                className="w-10 h-10 rounded border flex items-center justify-center font-serif text-lg font-bold tracking-widest uppercase transition-all duration-150"
+                className={`${isFlyerPreview ? 'h-8 w-8 text-sm' : 'w-10 h-10 text-lg'} rounded border flex items-center justify-center font-serif font-bold tracking-widest uppercase transition-all duration-150`}
                 style={{
                   borderColor: isFoil ? '#D4AF37' : (isDarkStock ? '#333' : '#E0DED7'),
                   background: isFoil ? activeMetallicFoil : 'transparent',
@@ -367,7 +419,7 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
                 AW
               </div>
               <p 
-                className="text-[10px] tracking-[0.2em] uppercase mt-2 font-medium"
+                className={`${isFlyerPreview ? 'mt-1 text-[8px] tracking-[0.14em]' : 'text-[10px] tracking-[0.2em] mt-2'} uppercase font-medium`}
                 style={{
                   color: isDarkStock ? '#9E9E9E' : '#737373',
                 }}
@@ -376,25 +428,25 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
               </p>
             </div>
 
-            <div className="text-right">
+            <div className={`${isFlyerPreview ? 'shrink-0 text-[9px]' : ''} text-right`}>
               <div 
-                className="text-xs font-serif italic"
+                className={`${isFlyerPreview ? 'text-[10px]' : 'text-xs'} font-serif italic`}
                 style={{
                   color: isFoil ? '#D4AF37' : (isDarkStock ? '#A3A3A3' : '#525252'),
                 }}
               >
                 {activeSide === 'front' ? 'Executive Edition' : 'Prepress Registered'}
               </div>
-              <div className="text-[10px] text-neutral-400 font-mono mt-0.5">
+              <div className={`${isFlyerPreview ? 'text-[8px]' : 'text-[10px]'} text-neutral-400 font-mono mt-0.5`}>
                 {selectedStock?.weightGsm} GSM · {selectedStock?.name.split(' ')[0]}
               </div>
             </div>
           </div>}
 
           {/* Centerpiece Typographic Treatment with Active Finish Effect */}
-          {!artworkPreviewUrl && <div className="relative z-10 my-auto text-left">
+          {!artworkPreviewUrl && !isFlyerPreview && <div className={`relative z-10 text-left ${isFlyerPreview ? 'my-2 flex min-h-0 flex-1 flex-col justify-center' : 'my-auto'}`}>
             <h4
-              className="text-xl sm:text-2xl font-serif font-bold tracking-tight transition-all duration-150"
+              className={`${isFlyerPreview ? 'break-words text-[clamp(0.8rem,2.2vw,1.25rem)] leading-[1.05]' : 'text-xl sm:text-2xl'} font-serif font-bold tracking-tight transition-all duration-150`}
               style={{
                 background: isFoil ? activeMetallicFoil : undefined,
                 WebkitBackgroundClip: isFoil ? 'text' : undefined,
@@ -409,7 +461,7 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
             </h4>
 
             <p 
-              className="text-xs sm:text-sm font-sans tracking-wide mt-1"
+              className={`${isFlyerPreview ? 'mt-1 text-[clamp(0.55rem,1.35vw,0.75rem)] leading-tight' : 'text-xs sm:text-sm mt-1'} font-sans tracking-wide`}
               style={{
                 color: isDarkStock ? '#D4AF37' : '#8C7324',
               }}
@@ -433,15 +485,15 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
           </div>}
 
           {/* Bottom Coordinates & QR/Vector Mark */}
-          {!artworkPreviewUrl && <div className="relative z-10 flex items-end justify-between text-[10px] border-t pt-2"
+          {!artworkPreviewUrl && !isFlyerPreview && <div className={`relative z-10 flex items-end justify-between gap-2 border-t pt-2 ${isFlyerPreview ? 'text-[8px] leading-tight' : 'text-[10px]'}`}
             style={{
               borderColor: isDarkStock ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
               color: isDarkStock ? '#8E8E93' : '#737373',
             }}
           >
-            <div>
-              <p>Gate Village 03, Dubai International Financial Centre</p>
-              <p className="font-mono tracking-tight text-[9px] mt-0.5">052 364 0939</p>
+            <div className="min-w-0 flex-1">
+              <p className={isFlyerPreview ? 'break-words' : ''}>Gate Village 03, Dubai International Financial Centre</p>
+              <p className={`${isFlyerPreview ? 'text-[8px]' : 'text-[9px]'} font-mono tracking-tight mt-0.5`}>052 364 0939</p>
             </div>
 
             <div className="font-mono text-[9px] text-right">
@@ -474,6 +526,7 @@ export const InteractiveFinishMockup: React.FC<InteractiveFinishMockupProps> = (
           <span>3mm Bleed OK</span>
         </div>
       </div>
+      {afterPreflight}
     </div>
   );
 };

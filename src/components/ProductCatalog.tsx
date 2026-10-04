@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Product, ProductCategory } from '../types';
 import { PRODUCTS } from '../data/products';
 import { formatAED } from '../utils/pricing';
-import { Sparkles, ArrowRight, Zap, Check, Calculator, Sliders, Layers } from 'lucide-react';
+import { Sparkles, ArrowRight, Zap, Check, Calculator, Sliders, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ProductCatalogProps {
   onSelectProduct: (product: Product) => void;
@@ -20,8 +20,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
   const [searchFilter, setSearchFilter] = useState('');
   const [paperFilter, setPaperFilter] = useState<string>('all');
+  const categoryViewportRef = useRef<HTMLDivElement>(null);
+  const [canScrollCategoriesLeft, setCanScrollCategoriesLeft] = useState(false);
+  const [canScrollCategoriesRight, setCanScrollCategoriesRight] = useState(false);
 
-  const categories: { id: ProductCategory; label: string; labelAr: string }[] = [
+  const legacyCategories: { id: ProductCategory; label: string; labelAr: string }[] = [
     { id: 'all', label: 'All Print Collections', labelAr: 'كافة المجموعات' },
     { id: 'business-cards', label: 'Business Cards', labelAr: 'بطاقات الأعمال' },
     { id: 'flyers', label: 'Flyers', labelAr: 'المنشورات الإعلانية' },
@@ -30,10 +33,51 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
     { id: 'custom-print', label: 'Custom Print Jobs', labelAr: 'المشاريع والطباعة المخصصة' },
   ];
 
+  const categories: { id: ProductCategory; label: string; labelAr: string }[] = [
+    { id: 'all', label: 'All Print Collections', labelAr: 'All Print Collections' },
+    { id: 'business-cards', label: 'Business Cards', labelAr: 'Business Cards' },
+    { id: 'premium-business-cards', label: 'Premium Business Cards', labelAr: 'Premium Business Cards' },
+    { id: 'official-commercial-papers', label: 'Official and Commercial Papers', labelAr: 'Official and Commercial Papers' },
+    { id: 'brochures', label: 'Brochures', labelAr: 'Brochures' },
+    { id: 'flyers', label: 'Flyers', labelAr: 'Flyers' },
+    { id: 'envelopes', label: 'Envelopes', labelAr: 'Envelopes' },
+    { id: 'table-mat', label: 'Table Mat', labelAr: 'Table Mat' },
+    { id: 'shopping-bags', label: 'Shopping Bags', labelAr: 'Shopping Bags' },
+    { id: 'fast-food-boxes', label: 'Fast Food Boxes', labelAr: 'Fast Food Boxes' },
+    { id: 'die-cutting-products', label: 'Die Cutting Products', labelAr: 'Die Cutting Products' },
+    { id: 'labels-stickers', label: 'Sticker', labelAr: 'Sticker' },
+    { id: 'menu', label: 'Menu', labelAr: 'Menu' },
+    { id: 'car-mat', label: 'Car Mat', labelAr: 'Car Mat' },
+    { id: 'banners', label: 'Banners', labelAr: 'Banners' },
+    { id: 'custom-print', label: 'Custom Print Jobs', labelAr: 'Custom Print Jobs' },
+  ];
+
   const handleCategoryChange = (category: ProductCategory) => {
     setSelectedCategory(category);
     if (category === 'business-cards') setPaperFilter('all');
   };
+
+  const updateCategoryScrollButtons = () => {
+    const viewport = categoryViewportRef.current;
+    if (!viewport) return;
+    setCanScrollCategoriesLeft(viewport.scrollLeft > 1);
+    setCanScrollCategoriesRight(viewport.scrollLeft + viewport.clientWidth < viewport.scrollWidth - 1);
+  };
+
+  const scrollCategories = (direction: 'left' | 'right') => {
+    const viewport = categoryViewportRef.current;
+    if (!viewport) return;
+    viewport.scrollBy({
+      left: viewport.clientWidth * 0.7 * (direction === 'right' ? 1 : -1),
+      behavior: 'smooth',
+    });
+  };
+
+  useEffect(() => {
+    updateCategoryScrollButtons();
+    window.addEventListener('resize', updateCategoryScrollButtons);
+    return () => window.removeEventListener('resize', updateCategoryScrollButtons);
+  }, []);
 
   const filteredProducts = PRODUCTS.filter((product) => {
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
@@ -41,13 +85,15 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
       product.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
       product.titleAr.includes(searchFilter) ||
       product.description.toLowerCase().includes(searchFilter.toLowerCase());
-    const matchesPaper = paperFilter === 'all' || product.availableStocks.some(s => s.finishType === paperFilter);
+    const matchesPaper = paperFilter === 'all' || product.availableStocks.some((stock) =>
+      stock.finishType === paperFilter || (paperFilter === 'recycled' && stock.finishType === 'kraft'),
+    );
     return matchesCategory && matchesSearch && matchesPaper;
   });
 
   return (
     <section id="print-catalog" className="py-16 bg-white border-b border-neutral-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" dir={isArabic ? 'rtl' : 'ltr'}>
+      <div className="site-shell" dir={isArabic ? 'rtl' : 'ltr'}>
         {/* Section Header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
           <div>
@@ -91,24 +137,44 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
         </div>
 
         {/* Primary Category Filter Bar */}
-        <div className="flex items-center gap-1.5 p-1.5 bg-neutral-100 rounded-xl mb-4 overflow-x-auto scrollbar-none">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => handleCategoryChange(cat.id)}
-              className={`px-4 py-2.5 text-xs rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 ${
-                selectedCategory === cat.id
-                  ? 'bg-white text-neutral-950 shadow-xs font-semibold'
-                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-white/60 font-medium'
-              }`}
-            >
-              <span>{isArabic ? cat.labelAr : cat.label}</span>
-              {selectedCategory === cat.id && (
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
-              )}
-            </button>
-          ))}
+        <div className="mb-4 flex w-full max-w-full items-stretch gap-2">
+          <button
+            type="button"
+            onClick={() => scrollCategories('left')}
+            disabled={!canScrollCategoriesLeft}
+            aria-label="Show previous product categories"
+            className="flex w-11 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-100 text-neutral-600 transition-colors hover:bg-neutral-200 hover:text-neutral-900 disabled:pointer-events-none disabled:invisible"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div ref={categoryViewportRef} onScroll={updateCategoryScrollButtons} className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain rounded-xl bg-neutral-100 p-2 scrollbar-none">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => handleCategoryChange(cat.id)}
+                className={`shrink-0 px-4 py-3 text-xs rounded-lg whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  selectedCategory === cat.id
+                    ? 'bg-white text-neutral-950 shadow-xs font-semibold'
+                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-white/60 font-medium'
+                }`}
+              >
+                <span>{isArabic ? cat.labelAr : cat.label}</span>
+                {selectedCategory === cat.id && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                )}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => scrollCategories('right')}
+            disabled={!canScrollCategoriesRight}
+            aria-label="Show next product categories"
+            className="flex w-11 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-100 text-neutral-600 transition-colors hover:bg-neutral-200 hover:text-neutral-900 disabled:pointer-events-none disabled:invisible"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Sub-filter bar: Quick Paper Stock Substrate Selector */}
@@ -129,6 +195,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
               { id: 'all', label: 'All Paper Qualities' },
               { id: 'matte', label: 'Matte Coated' },
               { id: 'gloss', label: 'Glossy Art' },
+              { id: 'uncoated', label: 'Wood Free Paper' },
               { id: 'recycled', label: 'Recycled Eco / Kraft' },
               { id: 'synthetic', label: 'Waterproof Synthetic' },
               { id: 'rigid', label: 'Rigid Kappa Board' },
@@ -150,7 +217,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
         )}
 
         {/* Product Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
+        <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-4">
           {filteredProducts.slice(0, maxProducts ?? filteredProducts.length).map((product) => (
             <div
               key={product.id}
@@ -158,18 +225,18 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             >
               {/* Product Visual */}
               <div 
-                className="relative aspect-[4/3] bg-neutral-200 overflow-hidden cursor-pointer" 
-                onClick={() => onSelectProduct(product)}
+                className={`relative aspect-[4/3] overflow-hidden bg-neutral-200 ${product.catalogOnly ? '' : 'cursor-pointer'}`}
+                onClick={() => !product.catalogOnly && onSelectProduct(product)}
               >
-                <img
+                {product.image ? <img
                   src={product.image}
                   alt={product.title}
                   className="w-full h-full object-cover group-hover:scale-104 transition-transform duration-500 ease-out"
                   referrerPolicy="no-referrer"
-                />
+                /> : <div className="h-full w-full" aria-label={`${product.title} image unavailable`} />}
 
                 {/* Subdued status badge */}
-                <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded text-[11px] font-medium text-neutral-800 shadow-xs">
+                {!product.catalogHideLeadTime && <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded text-[11px] font-medium text-neutral-800 shadow-xs">
                   {product.sameDayAvailable ? (
                     <span className="flex items-center gap-1 text-amber-800">
                       <Zap className="w-3 h-3 fill-amber-700 text-amber-700" />
@@ -178,51 +245,56 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   ) : (
                     <span>{product.leadTimeDays} Days Standard</span>
                   )}
-                </div>
+                </div>}
 
-                <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {!product.catalogOnly && <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <span className="px-4 py-2 bg-neutral-900 text-white rounded-lg text-xs font-semibold shadow-lg">
                     {isArabic ? 'تخصيص الورق، المقاس والتشطيب' : 'Configure Specifications'}
                   </span>
-                </div>
+                </div>}
               </div>
 
               {/* Product Content Details */}
               <div className="p-6 flex-1 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1.5 font-medium">
-                    <span className="text-amber-800 font-semibold">{isArabic ? product.categoryNameAr : product.categoryName}</span>
+                    <span className="text-amber-800 font-semibold">{isArabic ? product.categoryNameAr : product.catalogCategoryName ?? product.categoryName}</span>
                     <span aria-hidden="true">·</span>
-                    <span>Min {product.minQty} {product.unitLabel}</span>
+                    <span>{product.catalogMinQuantity ?? `Min ${product.minQty} ${product.unitLabel}`}</span>
                   </div>
 
                   <h3 
-                    onClick={() => onSelectProduct(product)}
-                    className="text-lg font-serif font-bold text-neutral-900 group-hover:text-amber-800 transition-colors cursor-pointer"
+                    onClick={() => !product.catalogOnly && onSelectProduct(product)}
+                    className={`text-lg font-serif font-bold text-neutral-900 group-hover:text-amber-800 transition-colors ${product.catalogOnly ? '' : 'cursor-pointer'}`}
                   >
                     {isArabic ? product.titleAr : product.title}
                   </h3>
 
-                  <p className="text-xs text-neutral-600 mt-2 line-clamp-2 leading-relaxed">
-                    {isArabic ? product.descriptionAr : product.description}
-                  </p>
+                  {!product.catalogHideDescription && <p className="text-xs text-neutral-600 mt-2 line-clamp-2 leading-relaxed">
+                    {isArabic ? product.descriptionAr : product.catalogDescription ?? product.description}
+                  </p>}
 
                   {/* Available Options Summary Badges */}
-                  <div className="mt-4 pt-3 border-t border-neutral-200/70 space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
+                  {(!product.catalogHideSubstrateSummary || !product.catalogHideFinishSummary || product.catalogSpecificationSummary) && <div className="mt-4 pt-3 border-t border-neutral-200/70 space-y-1.5">
+                    {!product.catalogHideSubstrateSummary && <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
                       <span className="font-semibold text-neutral-700">Substrates:</span>
-                      <span className="truncate">{product.availableStocks.map(s => s.finishType.toUpperCase()).join(' · ')}</span>
-                    </div>
+                      <span className="truncate">{product.catalogSubstrateSummary ?? product.availableStocks.map(s => s.finishType.toUpperCase()).join(' · ')}</span>
+                    </div>}
 
-                    <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
+                    {product.catalogSpecificationSummary && <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
+                      <span className="font-semibold text-neutral-700">Specifications:</span>
+                      <span className="truncate">{product.catalogSpecificationSummary}</span>
+                    </div>}
+
+                    {!product.catalogHideFinishSummary && <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
                       <span className="font-semibold text-neutral-700">Finishes:</span>
                       <span className="truncate">
                         {product.catalogFinishSummary
                           ? product.catalogFinishSummary
                           : `${product.availableFinishes.slice(0, 3).map(f => f.name.split(' ')[0]).join(', ')} +more`}
                       </span>
-                    </div>
-                  </div>
+                    </div>}
+                  </div>}
 
                   {/* Highlights */}
                   <ul className="mt-3 space-y-1 text-[11px] text-neutral-600">
@@ -236,20 +308,21 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                 </div>
 
                 {/* Card Footer with Price and CTA */}
-                <div className="mt-6 pt-4 border-t border-neutral-200/80 flex items-center justify-between">
-                  <div>
+                <div className={`mt-6 pt-4 border-t border-neutral-200/80 flex items-center ${product.catalogHidePrice ? 'justify-end' : 'justify-between'}`}>
+                  {!product.catalogHidePrice && <div>
                     <span className="text-[10px] uppercase tracking-wider text-neutral-400 block font-medium">
                       {isArabic ? 'يبدأ من' : 'Starting From'}
                     </span>
                     <span className="text-base font-serif font-bold text-neutral-900 font-mono tabular-nums">
                       {formatAED(product.basePriceAED, isArabic)}
                     </span>
-                  </div>
+                  </div>}
 
                   <button
                     type="button"
-                    onClick={() => onSelectProduct(product)}
-                    className="px-4 py-2 bg-neutral-900 group-hover:bg-amber-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+                    onClick={() => !product.catalogOnly && onSelectProduct(product)}
+                    disabled={product.catalogOnly}
+                    className="px-4 py-2 bg-neutral-900 group-hover:bg-amber-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <span>{isArabic ? 'تهيئة وحساب' : 'Configure'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />

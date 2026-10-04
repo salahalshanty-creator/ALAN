@@ -10,8 +10,17 @@ export type Emirate =
 export type ProductCategory = 
   | 'all'
   | 'business-cards'
+  | 'premium-business-cards'
+  | 'official-commercial-papers'
   | 'flyers'
   | 'brochures'
+  | 'envelopes'
+  | 'table-mat'
+  | 'shopping-bags'
+  | 'fast-food-boxes'
+  | 'die-cutting-products'
+  | 'menu'
+  | 'car-mat'
   | 'banners'
   | 'custom-print'
   | 'luxury-packaging'
@@ -21,8 +30,9 @@ export interface PaperStock {
   id: string;
   name: string;
   nameAr: string;
-  finishType: 'matte' | 'gloss' | 'recycled' | 'silk' | 'cotton' | 'synthetic' | 'rigid' | 'pvc';
+  finishType: 'matte' | 'gloss' | 'uncoated' | 'kraft' | 'recycled' | 'silk' | 'cotton' | 'synthetic' | 'rigid' | 'pvc' | 'unspecified';
   weightGsm: number;
+  displaySpecification?: string;
   description: string;
   priceMultiplier: number;
 }
@@ -65,7 +75,7 @@ export interface Product {
   basePriceAED: number; // Base price for minimum quantity
   minQty: number;
   unitLabel: string;
-  image: string;
+  image?: string;
   leadTimeDays: number;
   isPopular?: boolean;
   sameDayAvailable?: boolean;
@@ -74,8 +84,20 @@ export interface Product {
   availableSizes: PrintSize[];
   quantityTiers: QuantityTier[];
   specHighlights: string[];
+  catalogMinQuantity?: string;
+  catalogCategoryName?: string;
+  catalogDescription?: string;
+  catalogSubstrateSummary?: string;
+  catalogSpecificationSummary?: string;
   catalogFinishSummary?: string;
   catalogHighlightCount?: number;
+  catalogHideMinimum?: boolean;
+  catalogHideDescription?: boolean;
+  catalogHideSubstrateSummary?: boolean;
+  catalogHideFinishSummary?: boolean;
+  catalogHidePrice?: boolean;
+  catalogHideLeadTime?: boolean;
+  catalogOnly?: boolean;
   configuratorFinishHeading?: string;
   hideConfiguratorFinishDetails?: boolean;
   hideQuantityConfigurator?: boolean;
@@ -92,6 +114,14 @@ export interface CartItem {
   quantity: number;
   selectedStock: PaperStock;
   selectedFinish: PrintFinish;
+  selectedFinishes?: PrintFinish[];
+  spotUv?: boolean;
+  hotFoil?: boolean;
+  foilColor?: 'none' | 'gold' | 'silver';
+  customDieCut?: boolean;
+  lamination?: 'matt' | 'glossy' | 'velvet';
+  roundCorner?: boolean;
+  dieCutReference?: { name: string; type: string };
   selectedSize: PrintSize;
   printedSides?: PrintedSide[];
   customDimensions?: {

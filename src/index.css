@@ -371,3 +371,8 @@
 @media (prefers-reduced-motion:reduce) {
   .lamination-auto-sweep::before { animation:none; transform:translate3d(130%,0,0) rotate(7deg); }
 }
+
+@keyframes premium-spot-uv-reveal { from { opacity:0; transform:scale(.82); } to { opacity:.8; transform:scale(1); } }
+.premium-spot-uv { animation:premium-spot-uv-reveal .38s ease-out both; }
+.premium-spot-uv--bar { animation-delay:.08s; }
+@media (prefers-reduced-motion:reduce) { .premium-spot-uv { animation:none; } }

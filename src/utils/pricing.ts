@@ -5,6 +5,7 @@ export function calculateCustomPrice({
   quantity,
   selectedStock,
   selectedFinish,
+  selectedFinishes,
   selectedSize,
   turnaroundSpeed,
   customWidthMm,
@@ -14,6 +15,7 @@ export function calculateCustomPrice({
   quantity: number;
   selectedStock: PaperStock;
   selectedFinish: PrintFinish;
+  selectedFinishes?: PrintFinish[];
   selectedSize: PrintSize;
   turnaroundSpeed: TurnaroundSpeed;
   customWidthMm?: number;
@@ -79,7 +81,9 @@ export function calculateCustomPrice({
   const printSubtotal = discountedUnitCost * quantity;
 
   // Finish extra setup/die cost
-  const finishExtraAED = selectedFinish?.extraAED || 0;
+  const finishExtraAED = selectedFinishes
+    ? selectedFinishes.reduce((total, finish) => total + (finish.extraAED || 0), 0)
+    : selectedFinish?.extraAED || 0;
 
   // Turnaround multiplier
   let speedMultiplier = 1.0;

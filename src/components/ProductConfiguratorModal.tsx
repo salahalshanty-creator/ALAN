@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Product, PaperStock, PrintFinish, PrintSize, TurnaroundSpeed, CartItem, PrintedSide } from '../types';
 import { calculateCustomPrice, formatAED } from '../utils/pricing';
+import {
+  getPremiumBusinessCardCompatibility,
+  normalizePremiumBusinessCardConfiguration,
+  PremiumLamination,
+} from '../utils/premiumBusinessCardCompatibility';
 import { InteractiveFinishMockup, ArtworkEditorState } from './InteractiveFinishMockup';
 import { BusinessCardArtworkGuide } from './BusinessCardArtworkGuide';
 import { 
@@ -16,6 +21,7 @@ import {
   Layers,
   Zap,
   Info
+  , ChevronDown
 } from 'lucide-react';
 
 interface ProductConfiguratorModalProps {
@@ -41,6 +47,11 @@ const DEFAULT_ARTWORK_EDITOR: ArtworkEditorState = {
   zoom: 1,
   mode: 'fit',
 };
+const PREMIUM_LAMINATION_OPTIONS = [
+  { id: 'matt', label: 'Matt Lamination' },
+  { id: 'glossy', label: 'Glossy Lamination' },
+  { id: 'velvet', label: 'Velvet Lamination' },
+] as const;
 
 export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> = ({
   product,
@@ -50,6 +61,7 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
   isArabic = false,
 }) => {
   if (!isOpen || !product) return null;
+  const supportsArtworkOnBothSides = Boolean(product.printedSideOptions) || product.id === 'premium-marketing-flyers';
 
   // Defaults
   const [selectedStock, setSelectedStock] = useState<PaperStock>(
@@ -58,11 +70,16 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
   const [selectedFinish, setSelectedFinish] = useState<PrintFinish>(
     product.availableFinishes[0]
   );
+  const [roundCorner, setRoundCorner] = useState(false);
+  const [premiumFinishSelections, setPremiumFinishSelections] = useState({ spotUv: false, customDieCut: false, roundCorner: false });
+  const [foilColor, setFoilColor] = useState<'none' | 'gold' | 'silver'>('none');
+  const [premiumLamination, setPremiumLamination] = useState<PremiumLamination>('matt');
+  const [dieCutReference, setDieCutReference] = useState<{ name: string; type: string } | undefined>();
   const [selectedSize, setSelectedSize] = useState<PrintSize>(
     product.availableSizes[0]
   );
   const [selectedPrintedSides, setSelectedPrintedSides] = useState<PrintedSide[]>(
-    product.printedSideOptions?.map((option) => option.id) ?? []
+    product.printedSideOptions?.map((option) => option.id) ?? (supportsArtworkOnBothSides ? ['front', 'back'] : [])
   );
 
   // Custom dimension controls if custom size is picked
@@ -104,8 +121,13 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
     if (product) {
       setSelectedStock(product.availableStocks[0]);
       setSelectedFinish(product.availableFinishes[0]);
+      setRoundCorner(false);
+      setPremiumFinishSelections({ spotUv: false, customDieCut: false, roundCorner: false });
+      setFoilColor('none');
+      setPremiumLamination('matt');
+      setDieCutReference(undefined);
       setSelectedSize(product.availableSizes[0]);
-      setSelectedPrintedSides(product.printedSideOptions?.map((option) => option.id) ?? []);
+      setSelectedPrintedSides(product.printedSideOptions?.map((option) => option.id) ?? (supportsArtworkOnBothSides ? ['front', 'back'] : []));
       setIsCustomDimension(product.availableSizes[0].isCustom || false);
       setQuantity(product.minQty);
       setIsCustomQtyMode(false);
@@ -138,7 +160,7 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
     });
   };
 
-  const availableArtworkSides: PrintedSide[] = product.printedSideOptions
+  const availableArtworkSides: PrintedSide[] = supportsArtworkOnBothSides
     ? selectedPrintedSides
     : ['front'];
 
@@ -154,6 +176,61 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
   const physicalHeightMm = isCustomDimension
     ? customHeightMm * (customUnit === 'cm' ? 10 : 1)
     : selectedSize.heightMm ?? 50;
+  const isNormalBusinessCards = product.id === 'royal-foil-business-cards';
+  const isPremiumBusinessCards = product.id === 'recycled-cotton-letterpress-cards';
+  const premiumCompatibility = getPremiumBusinessCardCompatibility(selectedStock.id);
+  const normalizedPremiumConfiguration = normalizePremiumBusinessCardConfiguration({
+    stockId: selectedStock.id,
+    lamination: premiumLamination,
+    finishes: premiumFinishSelections,
+    foilColor,
+  });
+
+  useEffect(() => {
+    if (!isPremiumBusinessCards) return;
+
+    const normalized = normalizePremiumBusinessCardConfiguration({
+      stockId: selectedStock.id,
+      lamination: premiumLamination,
+      finishes: premiumFinishSelections,
+      foilColor,
+    });
+    if (normalized.lamination !== premiumLamination) setPremiumLamination(normalized.lamination);
+    if (
+      normalized.finishes.spotUv !== premiumFinishSelections.spotUv ||
+      normalized.finishes.customDieCut !== premiumFinishSelections.customDieCut ||
+      normalized.finishes.roundCorner !== premiumFinishSelections.roundCorner
+    ) setPremiumFinishSelections(normalized.finishes);
+    if (normalized.foilColor !== foilColor) setFoilColor(normalized.foilColor);
+  }, [isPremiumBusinessCards, selectedStock.id, premiumLamination, premiumFinishSelections, foilColor]);
+
+  const handleStockSelect = (stock: PaperStock) => {
+    setSelectedStock(stock);
+    if (!isPremiumBusinessCards) return;
+    const normalized = normalizePremiumBusinessCardConfiguration({
+      stockId: stock.id,
+      lamination: premiumLamination,
+      finishes: premiumFinishSelections,
+      foilColor,
+    });
+    setPremiumLamination(normalized.lamination);
+    setPremiumFinishSelections(normalized.finishes);
+    setFoilColor(normalized.foilColor);
+  };
+  const roundCornerFinish = product.availableFinishes.find((finish) => finish.id === 'round-corner');
+  const selectedFinishes = isPremiumBusinessCards
+    ? product.availableFinishes.filter((finish) =>
+      (finish.id === 'spot-uv' && normalizedPremiumConfiguration.finishes.spotUv) ||
+      (finish.id === 'gold-hot-foil' && normalizedPremiumConfiguration.foilColor !== 'none') ||
+      (finish.id === 'custom-die-cut' && normalizedPremiumConfiguration.finishes.customDieCut),
+    )
+    : roundCorner && roundCornerFinish ? [selectedFinish, roundCornerFinish] : [selectedFinish];
+  const quantityOptions = isNormalBusinessCards
+    ? [500, 1000, 2000, 5000].map((qty) => ({
+        qty,
+        discountPercentage: [...product.quantityTiers].sort((a, b) => b.qty - a.qty).find((tier) => qty >= tier.qty)?.discountPercentage ?? 0,
+      }))
+    : product.quantityTiers;
 
   // Compute live price
   const priceData = calculateCustomPrice({
@@ -161,6 +238,7 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
     quantity,
     selectedStock,
     selectedFinish,
+    selectedFinishes,
     selectedSize,
     turnaroundSpeed,
     customWidthMm: isCustomDimension ? (customUnit === 'cm' ? customWidthMm * 10 : customWidthMm) : undefined,
@@ -217,7 +295,15 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
       product,
       quantity,
       selectedStock,
-      selectedFinish,
+      selectedFinish: selectedFinishes[0] ?? selectedFinish,
+      selectedFinishes,
+      spotUv: isPremiumBusinessCards ? normalizedPremiumConfiguration.finishes.spotUv : undefined,
+      hotFoil: isPremiumBusinessCards ? normalizedPremiumConfiguration.foilColor !== 'none' : undefined,
+      foilColor: isPremiumBusinessCards ? normalizedPremiumConfiguration.foilColor : undefined,
+      customDieCut: isPremiumBusinessCards ? normalizedPremiumConfiguration.finishes.customDieCut : undefined,
+      lamination: isPremiumBusinessCards ? normalizedPremiumConfiguration.lamination : undefined,
+      roundCorner: isPremiumBusinessCards ? normalizedPremiumConfiguration.finishes.roundCorner : undefined,
+      dieCutReference: isPremiumBusinessCards && normalizedPremiumConfiguration.finishes.customDieCut ? dieCutReference : undefined,
       selectedSize: isCustomDimension
         ? {
             ...selectedSize,
@@ -226,7 +312,7 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
             label: `Custom Size (${customWidthMm} × ${customHeightMm} ${customUnit})`,
           }
         : selectedSize,
-      printedSides: product.printedSideOptions ? selectedPrintedSides : undefined,
+      printedSides: supportsArtworkOnBothSides ? selectedPrintedSides : undefined,
       customDimensions: isCustomDimension
         ? {
             width: customWidthMm,
@@ -286,6 +372,7 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
               productTitle={product.title}
               selectedStock={selectedStock}
               selectedFinish={selectedFinish}
+              premiumEffects={isPremiumBusinessCards ? { lamination: normalizedPremiumConfiguration.lamination, spotUv: normalizedPremiumConfiguration.finishes.spotUv, foilColor: normalizedPremiumConfiguration.foilColor, customDieCut: normalizedPremiumConfiguration.finishes.customDieCut, roundCorner: normalizedPremiumConfiguration.finishes.roundCorner } : undefined}
               artwork={activeArtwork}
               activeSide={activePreviewSide}
               availableSides={availableArtworkSides}
@@ -294,6 +381,12 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
               widthMm={physicalWidthMm}
               heightMm={physicalHeightMm}
               isArabic={isArabic}
+              isFlyerPreview={product.id === 'premium-marketing-flyers'}
+              afterPreflight={isPremiumBusinessCards ? <div title={!premiumCompatibility.customDieCut ? 'Not available with PET 760MIC' : undefined} className={`rounded-xl border p-3 shadow-xs transition-opacity ${normalizedPremiumConfiguration.finishes.customDieCut ? 'border-neutral-200 bg-white' : 'border-neutral-200 bg-neutral-50 opacity-60'}`}>
+                <div className="flex items-start justify-between gap-3"><div><span className="flex items-center gap-1.5 text-xs font-semibold text-neutral-900"><Scissors className="h-3.5 w-3.5 text-neutral-600" />Custom Die Cut Design</span><p className="mt-1 text-[11px] leading-relaxed text-neutral-500">Upload the cutting shape/reference for your custom die-cut.</p></div>{dieCutReference && <button type="button" onClick={() => setDieCutReference(undefined)} disabled={!premiumFinishSelections.customDieCut} className="text-[10px] text-neutral-400 hover:text-neutral-700 disabled:cursor-not-allowed">Remove</button>}</div>
+                {dieCutReference ? <div className="mt-2 flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/70 px-2.5 py-2"><span className="min-w-0 truncate text-[11px] font-medium text-emerald-950">✓ {dieCutReference.name}<small className="ml-1 text-emerald-700">{dieCutReference.type}</small></span><label className={`ml-2 shrink-0 text-[10px] font-medium ${premiumFinishSelections.customDieCut ? 'cursor-pointer text-emerald-700 hover:text-emerald-900' : 'cursor-not-allowed text-neutral-400'}`}>Replace<input type="file" disabled={!premiumFinishSelections.customDieCut} className="hidden" accept=".pdf,.svg,.png,.jpg,.jpeg" onChange={(event) => { const file = event.target.files?.[0]; if (file) setDieCutReference({ name: file.name, type: file.type || file.name.split('.').pop() || 'unknown' }); event.target.value = ''; }} /></label></div> : <label className={`mt-2 flex items-center justify-center gap-2 rounded-lg border border-dashed px-3 py-2 text-[11px] font-medium ${premiumFinishSelections.customDieCut ? 'cursor-pointer border-neutral-200 bg-neutral-50 text-neutral-700 hover:border-amber-500' : 'cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400'}`}><Upload className="h-3.5 w-3.5" />{premiumFinishSelections.customDieCut ? 'Upload Die-Cut Design' : 'Enable Custom Die Cut to upload a die-cut design.'}<input type="file" disabled={!premiumFinishSelections.customDieCut} className="hidden" accept=".pdf,.svg,.png,.jpg,.jpeg" onChange={(event) => { const file = event.target.files?.[0]; if (file) setDieCutReference({ name: file.name, type: file.type || file.name.split('.').pop() || 'unknown' }); event.target.value = ''; }} /></label>}
+                <p className="mt-1.5 text-[10px] text-neutral-500">Accepted formats: PDF · SVG · PNG · JPG/JPEG</p>
+              </div> : undefined}
             />
 
             {/* Artwork Upload & Pre-flight Module */}
@@ -383,7 +476,7 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
                   {product.availableStocks.map((stock) => (
                     <div
                       key={stock.id}
-                      onClick={() => setSelectedStock(stock)}
+                      onClick={() => handleStockSelect(stock)}
                       className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start justify-between gap-3 ${
                         selectedStock.id === stock.id
                           ? 'border-amber-600 bg-amber-50/40 shadow-xs ring-1 ring-amber-600/30'
@@ -396,7 +489,7 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
                             {isArabic ? stock.nameAr : stock.name}
                           </span>
                           <span className="text-[10px] font-mono text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded">
-                            {stock.weightGsm} GSM
+                            {stock.displaySpecification ?? `${stock.weightGsm} GSM`}
                           </span>
                         </div>
                         <p className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">
@@ -538,7 +631,31 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
                   )}
                 </label>
 
-                <div className="grid grid-cols-2 gap-2">
+                {isPremiumBusinessCards ? <><div className="mb-3"><label className="mb-1 block text-[11px] font-medium text-neutral-600">Lamination</label><div className="relative"><select value={normalizedPremiumConfiguration.lamination} onChange={(event) => setPremiumLamination(event.target.value as PremiumLamination)} className="w-full appearance-none rounded-lg border border-neutral-200 bg-white px-3 py-2 pr-8 text-xs font-medium text-neutral-800 outline-none transition-colors focus:border-amber-600 focus:ring-1 focus:ring-amber-600">{PREMIUM_LAMINATION_OPTIONS.filter((option) => premiumCompatibility.allowedLaminations.includes(option.id)).map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-500" /></div></div><div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
+                  {product.availableFinishes.filter((finish) => finish.id !== 'custom-die-cut').map((finish) => {
+                    const isAvailable = finish.id === 'spot-uv' ? premiumCompatibility.spotUv : premiumCompatibility.hotFoil;
+                    const selected = finish.id === 'spot-uv' ? normalizedPremiumConfiguration.finishes.spotUv : normalizedPremiumConfiguration.foilColor !== 'none';
+                    const toggle = () => !isAvailable ? undefined : finish.id === 'gold-hot-foil' ? setFoilColor(foilColor === 'none' ? 'gold' : 'none') : setPremiumFinishSelections((current) => ({ ...current, spotUv: !selected }));
+                    return <div key={finish.id} title={!isAvailable ? 'Not available with PET 760MIC' : undefined} className={`h-10 rounded-md border px-2.5 text-xs transition-all ${!isAvailable ? 'cursor-not-allowed border-neutral-200 bg-neutral-50 opacity-50' : selected ? 'border-amber-600 bg-amber-50/40 ring-1 ring-amber-600' : 'border-neutral-200 bg-white'}`}>
+                      {finish.id === 'gold-hot-foil' ? <div className="flex h-full items-center justify-between gap-2"><span className="min-w-0 truncate text-[11px] font-semibold text-neutral-900">Gold Hot Foil</span><div className="relative shrink-0"><select value={foilColor} onChange={(event) => setFoilColor(event.target.value as 'none' | 'gold' | 'silver')} className="appearance-none bg-transparent py-1 pl-1 pr-4 text-[10px] font-semibold text-neutral-700 outline-none"><option value="none">Off</option><option value="gold">Gold</option><option value="silver">Silver</option></select><ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 text-neutral-500" /></div></div> : <button type="button" disabled={!isAvailable} aria-pressed={selected} onClick={toggle} className="flex h-full w-full items-center justify-between text-left disabled:cursor-not-allowed"><span className="text-[11px] font-semibold text-neutral-900">{finish.name}</span><span className={`flex h-4 w-4 items-center justify-center rounded border ${selected ? 'border-amber-600 bg-amber-600 text-white' : 'border-neutral-300'}`}>{selected && <Check className="h-3 w-3 stroke-[3]" />}</span></button>}
+                    </div>;
+                  })}
+                  <button type="button" disabled={!premiumCompatibility.roundCorner} aria-pressed={normalizedPremiumConfiguration.finishes.roundCorner} onClick={() => setPremiumFinishSelections((current) => ({ ...current, roundCorner: !current.roundCorner }))} className={`flex h-10 items-center rounded-md border px-2.5 text-left text-xs transition-all ${normalizedPremiumConfiguration.finishes.roundCorner ? 'border-amber-600 bg-amber-50/40 ring-1 ring-amber-600' : 'border-neutral-200 bg-white'}`}><span className="flex w-full items-center justify-between text-[11px] font-semibold text-neutral-900">Round Corner<span className={`flex h-4 w-4 items-center justify-center rounded border ${normalizedPremiumConfiguration.finishes.roundCorner ? 'border-amber-600 bg-amber-600 text-white' : 'border-neutral-300'}`}>{normalizedPremiumConfiguration.finishes.roundCorner && <Check className="h-3 w-3 stroke-[3]" />}</span></span></button>
+                  <div title={!premiumCompatibility.customDieCut ? 'Not available with PET 760MIC' : undefined} className={`h-10 rounded-md border px-2.5 text-xs transition-all ${!premiumCompatibility.customDieCut ? 'cursor-not-allowed border-neutral-200 bg-neutral-50 opacity-50' : normalizedPremiumConfiguration.finishes.customDieCut ? 'border-amber-600 bg-amber-50/40 ring-1 ring-amber-600' : 'border-neutral-200 bg-white'}`}><button type="button" disabled={!premiumCompatibility.customDieCut} aria-pressed={normalizedPremiumConfiguration.finishes.customDieCut} onClick={() => setPremiumFinishSelections((current) => ({ ...current, customDieCut: !current.customDieCut }))} className="flex h-full w-full items-center justify-between text-left text-[11px] font-semibold text-neutral-900 disabled:cursor-not-allowed">Custom Die Cut<span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${normalizedPremiumConfiguration.finishes.customDieCut ? 'border-amber-600 bg-amber-600 text-white' : 'border-neutral-300'}`}>{normalizedPremiumConfiguration.finishes.customDieCut && <Check className="h-3 w-3 stroke-[3]" />}</span></button></div>
+                </div></> : isNormalBusinessCards ? <>
+                  <p className="mb-2 text-[11px] font-medium text-neutral-600">Lamination</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {product.availableFinishes.filter((finish) => finish.id !== 'round-corner').map((finish) => (
+                      <button key={finish.id} type="button" onClick={() => setSelectedFinish(finish)} className={`p-2.5 rounded-lg border text-left text-xs transition-all ${selectedFinish.id === finish.id ? 'border-amber-600 bg-amber-50/40 ring-1 ring-amber-600 font-medium' : 'border-neutral-200 hover:border-neutral-300 bg-white text-neutral-700'}`}>
+                        <span className="text-[11px] font-semibold">{isArabic ? finish.nameAr : finish.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mb-2 mt-3 text-[11px] font-medium text-neutral-600">Additional Finishing</p>
+                  <button type="button" aria-pressed={roundCorner} onClick={() => setRoundCorner((selected) => !selected)} className={`w-full p-2.5 rounded-lg border text-left text-xs transition-all flex items-center justify-between ${roundCorner ? 'border-amber-600 bg-amber-50/40 ring-1 ring-amber-600 font-medium' : 'border-neutral-200 hover:border-neutral-300 bg-white text-neutral-700'}`}>
+                    <span className="text-[11px] font-semibold">Round Corner</span><span className={`flex h-4 w-4 items-center justify-center rounded border ${roundCorner ? 'border-amber-600 bg-amber-600 text-white' : 'border-neutral-300'}`}>{roundCorner && <Check className="h-3 w-3 stroke-[3]" />}</span>
+                  </button>
+                </> : <div className="grid grid-cols-2 gap-2">
                   {product.availableFinishes.map((finish) => (
                     <button
                       key={finish.id}
@@ -573,7 +690,7 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
                       )}
                     </button>
                   ))}
-                </div>
+                </div>}
 
               </div>
 
@@ -633,8 +750,8 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
                 </div>
 
                 {!isCustomQtyMode ? (
-                  <div className="grid grid-cols-5 gap-1.5">
-                    {product.quantityTiers.map((tier) => (
+                  <div className={`grid gap-1.5 ${isNormalBusinessCards || isPremiumBusinessCards ? 'grid-cols-4' : 'grid-cols-5'}`}>
+                    {quantityOptions.map((tier) => (
                       <button
                         key={tier.qty}
                         type="button"
@@ -647,7 +764,11 @@ export const ProductConfiguratorModal: React.FC<ProductConfiguratorModalProps> =
                       >
                         <div className="tabular-nums font-semibold">{tier.qty}</div>
                         <div className="text-[10px] text-neutral-500">
-                          {tier.discountPercentage > 0 ? `-${tier.discountPercentage}%` : 'Base'}
+                          {tier.discountPercentage > 0
+                            ? `-${tier.discountPercentage}%`
+                            : tier.qty === product.minQty || !isPremiumBusinessCards
+                              ? 'Base'
+                              : ''}
                         </div>
                       </button>
                     ))}
